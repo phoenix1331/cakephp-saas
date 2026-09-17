@@ -1,4 +1,4 @@
-.PHONY: up down build shell migrate seed test logs fresh help
+.PHONY: up down build shell migrate seed test logs fresh lint lint-fix help
 
 up: ## start containers in the background
 	@docker compose up -d
@@ -23,6 +23,12 @@ test: ## run the test suite
 
 logs: ## tail app container logs
 	@docker compose logs -f app
+
+lint: ## check code style with phpcs
+	@docker compose exec app vendor/bin/phpcs
+
+lint-fix: ## fix code style issues with phpcbf
+	@docker compose exec app vendor/bin/phpcbf
 
 fresh: ## drop and rebuild the database, then migrate and seed
 	@docker compose exec app bin/cake migrations rollback --target=0 --force
