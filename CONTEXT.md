@@ -28,6 +28,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking`, `Plan` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
+| `src/Model/Behavior/` | `TenantScopeBehavior` - attached to `Users`, `Services`, `Customers`, `Bookings` |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
 | `bin/cake` | console entry point, the `artisan` equivalent |
 
@@ -52,7 +53,9 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 - **MySQL host port is 3307, not 3306** - 3306 was already bound on the dev machine at setup time.
 - **Composer is copied into the Dockerfile from the official `composer:2` image** - the base FrankenPHP image doesn't ship it.
 - **Database connection uses `DATABASE_URL`** rather than the scaffold's default array-based `Datasources.default` config, so container and CI environments can override it with one variable.
-- **Multi-tenancy is single-database, shared-schema**, enforced via a `business_id` column plus a planned `TenantScopeBehavior` (Phase 1), the Table-level equivalent of a Laravel Eloquent global scope.
+- **Multi-tenancy is single-database, shared-schema**, enforced via a `business_id` column plus `TenantScopeBehavior` (`src/Model/Behavior/TenantScopeBehavior.php`), the Table-level equivalent of a Laravel Eloquent global scope. Attached to `UsersTable`, `ServicesTable`, `CustomersTable`, `BookingsTable` (every table with a direct `business_id` column - `AvailabilitiesTable` is scoped indirectly via `user_id` and doesn't carry the column itself, so it's not attached there).
+- **`TenantScopeBehavior`'s tenant id is set explicitly via `setTenantId(int $id)`**, never read from a global or session inside the behavior itself - this keeps it unit-testable in isolation and makes every scoped query traceable to a concrete id. It hooks `Model.beforeFind` (adds a `WHERE business_id = ?`) and `Model.beforeSave` (stamps the tenant id on new entities, refuses to save a mismatched one). Calling `find()` or `save()` on a scoped table without calling `setTenantId()` first throws a `RuntimeException` rather than silently returning unscoped/cross-tenant data - this is deliberate fail-loud behaviour, not a bug. `tests/TestCase/Model/Behavior/TenantScopeBehaviorTest.php` uses hand-written two-tenant fixtures (not `bake`-generated) to prove cross-tenant isolation, since this is the one piece the brief flags as needing real tests from the start.
+- **The Admin controllers (`BusinessesController`, `ServicesController`, `UsersController`, `BookingsController`) now 500 on `Services`/`Users`/`Bookings`** because they query without calling `setTenantId()` - this is expected and left as-is until Phase 2 wires real tenant resolution from the logged-in user's `business_id` via `cakephp/authentication`. Do not add a hardcoded/stopgap tenant id to work around it.
 - **No Cashier-equivalent exists in CakePHP** - Stripe billing (Phase 5) will integrate `stripe/stripe-php` directly rather than through a framework wrapper.
 - **`declare(strict_types=1)` is enforced via `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`** in `phpcs.xml`, the PHPCS equivalent of Pint's `declare_strict_types` setting - PHPCS has no built-in flag for this, so the Slevomat sniff (already pulled in transitively by `cakephp/cakephp-codesniffer`) fills the gap and is `phpcbf`-fixable.
 - **The `app` container runs as the host UID/GID** (`user: "${UID:-1000}:${GID:-1000}"` in `docker-compose.yml`, sourced from a gitignored root `.env`) - without this, `bin/cake bake`/`migrations create` write root-owned files into the bind-mounted project, which the host user then can't edit or delete.
@@ -61,7 +64,7 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 - **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
 - **`availabilities`' day-of-week/date mutual exclusivity is enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`** - CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for a field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for cross-field invariants like this.
 - **`businesses.plan_id`'s FK uses `RESTRICT` (not `CASCADE`) on delete** - unlike the other CASCADE relationships where child rows become meaningless once the parent is gone, a `Plan` shouldn't be deletable while businesses are still subscribed to it.
-- **The full domain model is in place** (see table above) with all associations wired in both directions. `TenantScopeBehavior` is the next piece, since every tenant-scoped table now exists for it to attach to.
+- **The full domain model is in place** (see table above) with all associations wired in both directions and `TenantScopeBehavior` attached to every tenant-scoped table.
 
 ## External integrations
 
