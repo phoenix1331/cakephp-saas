@@ -22,7 +22,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 
 | Path | Purpose |
 |---|---|
-| `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
+| `src/Controller/Admin/` | owner/staff dashboard - `BusinessesController`, `ServicesController`, `UsersController`, `BookingsController` baked (CRUD only, not yet behind auth - Phase 2) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
 | `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable`, `BookingsTable`, `PlansTable` built (full domain model in place) |
 | `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking`, `Plan` built |
@@ -30,6 +30,20 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
 | `bin/cake` | console entry point, the `artisan` equivalent |
+
+## Domain model
+
+| Table | Key columns | Associations |
+|---|---|---|
+| `businesses` | `slug` (unique), `plan_id` (nullable FK), `stripe_customer_id`, `subscription_status`, `trial_ends_at` (all nullable) | `belongsTo Plans`; `hasMany Users, Bookings` |
+| `users` | `business_id` (FK), `email` (unique), `role` (`owner`/`staff`) | `belongsTo Businesses`; `belongsToMany Services` (via `services_users`); `hasMany Availabilities, Bookings` |
+| `services` | `business_id` (FK), `duration_minutes`, `price` | `belongsTo Businesses`; `belongsToMany Users` (via `services_users`); `hasMany Bookings` |
+| `availabilities` | `user_id` (FK), `day_of_week`/`date` (mutually exclusive), `start_time`/`end_time`, `is_available` | `belongsTo Users` |
+| `customers` | `business_id` (FK), `email` (unique per business) | `belongsTo Businesses`; `hasMany Bookings` |
+| `bookings` | `business_id`, `service_id`, `user_id`, `customer_id` (all FK), `status` (`pending`/`confirmed`/`cancelled`/`completed`), `reminder_sent_at` (nullable) | `belongsTo Businesses, Services, Users, Customers` |
+| `plans` | `staff_limit`, `stripe_price_id` (nullable), `price` | `hasMany Businesses` |
+
+Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `config/routes.php`) is baked for Businesses, Services, Users, Bookings - no auth gate yet, that's Phase 2.
 
 ## Notable decisions
 
@@ -42,15 +56,12 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **No Cashier-equivalent exists in CakePHP** - Stripe billing (Phase 5) will integrate `stripe/stripe-php` directly rather than through a framework wrapper.
 - **`declare(strict_types=1)` is enforced via `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`** in `phpcs.xml`, the PHPCS equivalent of Pint's `declare_strict_types` setting - PHPCS has no built-in flag for this, so the Slevomat sniff (already pulled in transitively by `cakephp/cakephp-codesniffer`) fills the gap and is `phpcbf`-fixable.
 - **The `app` container runs as the host UID/GID** (`user: "${UID:-1000}:${GID:-1000}"` in `docker-compose.yml`, sourced from a gitignored root `.env`) - without this, `bin/cake bake`/`migrations create` write root-owned files into the bind-mounted project, which the host user then can't edit or delete.
-- **`businesses.stripe_customer_id`, `subscription_status`, and `trial_ends_at` are nullable** - a business exists before Stripe is set up or a trial starts. `slug` has a unique index for the `/book/{slug}` public routing lookup.
-- **`users.role` is restricted to `owner`/`staff`** via `inList` validation, matching the brief's two-role model. Password hashing is deliberately not yet added to the `User` entity - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
-- **`bake`-generated stub fixtures and table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and add no value until real behaviour exists to test.
+- **Password hashing is deliberately not yet added to the `User` entity** - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
+- **`bake`-generated stub fixtures and controller/table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and reference fixtures that don't exist once deleted.
 - **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
-- **`availabilities` is one table for both recurring weekly rules and one-off overrides**, distinguished by which of `day_of_week` (recurring) / `date` (override) is set - the two are mutually exclusive, enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`, because CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for that field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for this kind of cross-field invariant.
-- **`customers.email` is unique per business, not globally** (`UNIQUE (business_id, email)`) - the same email can book at two different businesses as separate `Customer` rows, since guest booking is matched by email within one tenant, not across the whole app.
-- **`bookings.status` defaults to `'pending'` and is restricted to `pending`/`confirmed`/`cancelled`/`completed`** via `inList`, matching the brief exactly. `reminder_sent_at` is nullable (null = reminder not yet sent, the state the Phase 4 cron command polls for).
-- **The full domain model (Business, User, Service, Availability, Customer, Booking, Plan) is now in place** with all associations wired in both directions - `TenantScopeBehavior` is the next piece, since every tenant-scoped table now exists for it to attach to.
-- **`businesses.plan_id` is nullable with an FK `RESTRICT` (not `CASCADE`) on delete** - a business can exist before choosing a plan (trial period), and a `Plan` can't be deleted while businesses are still subscribed to it, unlike the other CASCADE relationships where child rows become meaningless once the parent is gone.
+- **`availabilities`' day-of-week/date mutual exclusivity is enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`** - CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for a field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for cross-field invariants like this.
+- **`businesses.plan_id`'s FK uses `RESTRICT` (not `CASCADE`) on delete** - unlike the other CASCADE relationships where child rows become meaningless once the parent is gone, a `Plan` shouldn't be deletable while businesses are still subscribed to it.
+- **The full domain model is in place** (see table above) with all associations wired in both directions. `TenantScopeBehavior` is the next piece, since every tenant-scoped table now exists for it to attach to.
 
 ## External integrations
 
