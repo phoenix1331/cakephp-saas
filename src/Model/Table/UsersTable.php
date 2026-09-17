@@ -53,6 +53,9 @@ class UsersTable extends Table
             'targetForeignKey' => 'service_id',
             'joinTable' => 'services_users',
         ]);
+        $this->hasMany('Availabilities', [
+            'foreignKey' => 'user_id',
+        ]);
     }
 
     /**

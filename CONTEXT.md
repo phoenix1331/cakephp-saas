@@ -24,8 +24,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable` built |
-| `src/Model/Entity/` | data objects - `Business`, `User`, `Service` built |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable` built |
+| `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
@@ -46,6 +46,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **`users.role` is restricted to `owner`/`staff`** via `inList` validation, matching the brief's two-role model. Password hashing is deliberately not yet added to the `User` entity - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
 - **`bake`-generated stub fixtures and table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and add no value until real behaviour exists to test.
 - **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
+- **`availabilities` is one table for both recurring weekly rules and one-off overrides**, distinguished by which of `day_of_week` (recurring) / `date` (override) is set - the two are mutually exclusive, enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`, because CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for that field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for this kind of cross-field invariant.
 
 ## External integrations
 
