@@ -24,8 +24,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable` built |
-| `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability` built |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable` built |
+| `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
@@ -47,6 +47,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **`bake`-generated stub fixtures and table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and add no value until real behaviour exists to test.
 - **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
 - **`availabilities` is one table for both recurring weekly rules and one-off overrides**, distinguished by which of `day_of_week` (recurring) / `date` (override) is set - the two are mutually exclusive, enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`, because CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for that field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for this kind of cross-field invariant.
+- **`customers.email` is unique per business, not globally** (`UNIQUE (business_id, email)`) - the same email can book at two different businesses as separate `Customer` rows, since guest booking is matched by email within one tenant, not across the whole app.
 
 ## External integrations
 
