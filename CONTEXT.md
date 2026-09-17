@@ -16,6 +16,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | ORM connection | `DATABASE_URL` env var (DSN), parsed by `config/app_local.php` |
 | Linting | `cakephp/cakephp-codesniffer` (installed as a dependency of `cakephp/app`), configured in `phpcs.xml` |
 | Git hooks | Husky (`.husky/`), runs `phpcs` inside the app container plus `osv-scanner` on the host - needs Node/npm on the host, `osv-scanner` installed locally |
+| Schema migrations | `cakephp/migrations` (Phinx-based), files in `config/Migrations/` |
 
 ## Key directories
 
@@ -23,8 +24,9 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation (not yet built) |
-| `src/Model/Entity/` | data objects (not yet built) |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable` built |
+| `src/Model/Entity/` | data objects - `Business` built |
+| `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
 | `bin/cake` | console entry point, the `artisan` equivalent |
@@ -39,6 +41,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **Multi-tenancy is single-database, shared-schema**, enforced via a `business_id` column plus a planned `TenantScopeBehavior` (Phase 1), the Table-level equivalent of a Laravel Eloquent global scope.
 - **No Cashier-equivalent exists in CakePHP** - Stripe billing (Phase 5) will integrate `stripe/stripe-php` directly rather than through a framework wrapper.
 - **`declare(strict_types=1)` is enforced via `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`** in `phpcs.xml`, the PHPCS equivalent of Pint's `declare_strict_types` setting - PHPCS has no built-in flag for this, so the Slevomat sniff (already pulled in transitively by `cakephp/cakephp-codesniffer`) fills the gap and is `phpcbf`-fixable.
+- **The `app` container runs as the host UID/GID** (`user: "${UID:-1000}:${GID:-1000}"` in `docker-compose.yml`, sourced from a gitignored root `.env`) - without this, `bin/cake bake`/`migrations create` write root-owned files into the bind-mounted project, which the host user then can't edit or delete.
+- **`businesses.stripe_customer_id`, `subscription_status`, and `trial_ends_at` are nullable** - a business exists before Stripe is set up or a trial starts. `slug` has a unique index for the `/book/{slug}` public routing lookup.
 
 ## External integrations
 

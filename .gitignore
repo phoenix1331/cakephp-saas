@@ -10,6 +10,10 @@
 /tmp/*
 /vendor/*
 
+# Docker Compose host-specific overrides #
+############################################
+/.env
+
 # OS generated files #
 ######################
 .DS_Store
