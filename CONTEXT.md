@@ -1,0 +1,43 @@
+# CONTEXT
+
+## What this is
+
+A booking and scheduling SaaS for solo service businesses (hairdressers, tutors, therapists), built in CakePHP 5 as a deliberate framework-learning exercise mapped against Laravel. Public guest booking flow, owner/staff dashboard, email reminders, and Stripe billing, backed by a shared-schema multi-tenancy model. See `.claude/tasks/BRIEF.md` for the full product brief and Laravel-to-CakePHP concept mapping.
+
+## Architecture at a glance
+
+| Layer | Choice |
+|---|---|
+| Framework | CakePHP 5.4 |
+| Runtime | FrankenPHP (`dunglas/frankenphp:php8.4`), served via `bin/cake server` |
+| Database | MySQL 8.4, host port 3307 (3306 was already in use on the dev machine) |
+| Cache/queue backing | Redis 7 |
+| Container orchestration | `docker-compose.yml` - `app`, `mysql`, `redis` services |
+| ORM connection | `DATABASE_URL` env var (DSN), parsed by `config/app_local.php` |
+| Linting | `cakephp/cakephp-codesniffer` (installed as a dependency of `cakephp/app`), configured in `phpcs.xml` |
+
+## Key directories
+
+| Path | Purpose |
+|---|---|
+| `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
+| `src/Controller/` | public booking flow controllers (not yet built) |
+| `src/Model/Table/` | query logic, associations, validation (not yet built) |
+| `src/Model/Entity/` | data objects (not yet built) |
+| `templates/` | native `.php` views, mirrors Controller structure |
+| `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
+| `bin/cake` | console entry point, the `artisan` equivalent |
+
+## Notable decisions
+
+- **Stack diverges from the project template's Laravel default.** The brief explicitly specifies CakePHP 5.x; RULES.md's default stack only applies when a brief doesn't state otherwise.
+- **FrankenPHP kept despite being Laravel-ecosystem-associated**, since it still works as a plain PHP runtime; the container runs `bin/cake server` rather than an artisan-equivalent.
+- **MySQL host port is 3307, not 3306** - 3306 was already bound on the dev machine at setup time.
+- **Composer is copied into the Dockerfile from the official `composer:2` image** - the base FrankenPHP image doesn't ship it.
+- **Database connection uses `DATABASE_URL`** rather than the scaffold's default array-based `Datasources.default` config, so container and CI environments can override it with one variable.
+- **Multi-tenancy is single-database, shared-schema**, enforced via a `business_id` column plus a planned `TenantScopeBehavior` (Phase 1), the Table-level equivalent of a Laravel Eloquent global scope.
+- **No Cashier-equivalent exists in CakePHP** - Stripe billing (Phase 5) will integrate `stripe/stripe-php` directly rather than through a framework wrapper.
+
+## External integrations
+
+None yet. Planned: Stripe (`stripe/stripe-php`, Phase 5), `cakephp/authentication` + `cakephp/authorization` (Phase 2), `cakephp/queue` (Phase 4 upgrade).
