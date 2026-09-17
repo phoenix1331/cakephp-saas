@@ -15,6 +15,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | Container orchestration | `docker-compose.yml` - `app`, `mysql`, `redis` services |
 | ORM connection | `DATABASE_URL` env var (DSN), parsed by `config/app_local.php` |
 | Linting | `cakephp/cakephp-codesniffer` (installed as a dependency of `cakephp/app`), configured in `phpcs.xml` |
+| Git hooks | Husky (`.husky/`), runs `phpcs` inside the app container plus `osv-scanner` on the host - needs Node/npm on the host, `osv-scanner` installed locally |
 
 ## Key directories
 
