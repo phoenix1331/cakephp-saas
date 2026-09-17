@@ -43,6 +43,9 @@ class BusinessesTable extends Table
 
         $this->addBehavior('Timestamp');
 
+        $this->belongsTo('Plans', [
+            'foreignKey' => 'plan_id',
+        ]);
         $this->hasMany('Users', [
             'foreignKey' => 'business_id',
         ]);
@@ -92,6 +95,10 @@ class BusinessesTable extends Table
             ->dateTime('trial_ends_at')
             ->allowEmptyDateTime('trial_ends_at');
 
+        $validator
+            ->integer('plan_id')
+            ->allowEmptyString('plan_id');
+
         return $validator;
     }
 
@@ -105,6 +112,7 @@ class BusinessesTable extends Table
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->isUnique(['slug']), ['errorField' => 'slug']);
+        $rules->add($rules->existsIn(['plan_id'], 'Plans'), ['errorField' => 'plan_id']);
 
         return $rules;
     }

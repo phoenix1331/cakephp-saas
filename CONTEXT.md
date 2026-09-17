@@ -24,8 +24,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable`, `BookingsTable` built (full domain model in place) |
-| `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking` built |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable`, `BookingsTable`, `PlansTable` built (full domain model in place) |
+| `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking`, `Plan` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
@@ -49,7 +49,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **`availabilities` is one table for both recurring weekly rules and one-off overrides**, distinguished by which of `day_of_week` (recurring) / `date` (override) is set - the two are mutually exclusive, enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`, because CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for that field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for this kind of cross-field invariant.
 - **`customers.email` is unique per business, not globally** (`UNIQUE (business_id, email)`) - the same email can book at two different businesses as separate `Customer` rows, since guest booking is matched by email within one tenant, not across the whole app.
 - **`bookings.status` defaults to `'pending'` and is restricted to `pending`/`confirmed`/`cancelled`/`completed`** via `inList`, matching the brief exactly. `reminder_sent_at` is nullable (null = reminder not yet sent, the state the Phase 4 cron command polls for).
-- **The full domain model (Business, User, Service, Availability, Customer, Booking) is now in place** with all associations wired in both directions - `TenantScopeBehavior` is the next piece, since every tenant-scoped table now exists for it to attach to.
+- **The full domain model (Business, User, Service, Availability, Customer, Booking, Plan) is now in place** with all associations wired in both directions - `TenantScopeBehavior` is the next piece, since every tenant-scoped table now exists for it to attach to.
+- **`businesses.plan_id` is nullable with an FK `RESTRICT` (not `CASCADE`) on delete** - a business can exist before choosing a plan (trial period), and a `Plan` can't be deleted while businesses are still subscribed to it, unlike the other CASCADE relationships where child rows become meaningless once the parent is gone.
 
 ## External integrations
 
