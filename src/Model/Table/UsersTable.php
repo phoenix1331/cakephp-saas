@@ -48,6 +48,11 @@ class UsersTable extends Table
             'foreignKey' => 'business_id',
             'joinType' => 'INNER',
         ]);
+        $this->belongsToMany('Services', [
+            'foreignKey' => 'user_id',
+            'targetForeignKey' => 'service_id',
+            'joinTable' => 'services_users',
+        ]);
     }
 
     /**

@@ -24,8 +24,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable` built |
-| `src/Model/Entity/` | data objects - `Business`, `User` built |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable` built |
+| `src/Model/Entity/` | data objects - `Business`, `User`, `Service` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
@@ -45,6 +45,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **`businesses.stripe_customer_id`, `subscription_status`, and `trial_ends_at` are nullable** - a business exists before Stripe is set up or a trial starts. `slug` has a unique index for the `/book/{slug}` public routing lookup.
 - **`users.role` is restricted to `owner`/`staff`** via `inList` validation, matching the brief's two-role model. Password hashing is deliberately not yet added to the `User` entity - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
 - **`bake`-generated stub fixtures and table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and add no value until real behaviour exists to test.
+- **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
 
 ## External integrations
 
