@@ -24,8 +24,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind auth (not yet built) |
 | `src/Controller/` | public booking flow controllers (not yet built) |
-| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable` built |
-| `src/Model/Entity/` | data objects - `Business` built |
+| `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable` built |
+| `src/Model/Entity/` | data objects - `Business`, `User` built |
 | `config/Migrations/` | Phinx-based schema migrations |
 | `templates/` | native `.php` views, mirrors Controller structure |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
@@ -43,6 +43,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 - **`declare(strict_types=1)` is enforced via `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`** in `phpcs.xml`, the PHPCS equivalent of Pint's `declare_strict_types` setting - PHPCS has no built-in flag for this, so the Slevomat sniff (already pulled in transitively by `cakephp/cakephp-codesniffer`) fills the gap and is `phpcbf`-fixable.
 - **The `app` container runs as the host UID/GID** (`user: "${UID:-1000}:${GID:-1000}"` in `docker-compose.yml`, sourced from a gitignored root `.env`) - without this, `bin/cake bake`/`migrations create` write root-owned files into the bind-mounted project, which the host user then can't edit or delete.
 - **`businesses.stripe_customer_id`, `subscription_status`, and `trial_ends_at` are nullable** - a business exists before Stripe is set up or a trial starts. `slug` has a unique index for the `/book/{slug}` public routing lookup.
+- **`users.role` is restricted to `owner`/`staff`** via `inList` validation, matching the brief's two-role model. Password hashing is deliberately not yet added to the `User` entity - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
+- **`bake`-generated stub fixtures and table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and add no value until real behaviour exists to test.
 
 ## External integrations
 
