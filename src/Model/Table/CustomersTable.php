@@ -48,6 +48,9 @@ class CustomersTable extends Table
             'foreignKey' => 'business_id',
             'joinType' => 'INNER',
         ]);
+        $this->hasMany('Bookings', [
+            'foreignKey' => 'customer_id',
+        ]);
     }
 
     /**

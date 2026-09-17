@@ -56,6 +56,9 @@ class UsersTable extends Table
         $this->hasMany('Availabilities', [
             'foreignKey' => 'user_id',
         ]);
+        $this->hasMany('Bookings', [
+            'foreignKey' => 'user_id',
+        ]);
     }
 
     /**

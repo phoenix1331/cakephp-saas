@@ -46,6 +46,9 @@ class BusinessesTable extends Table
         $this->hasMany('Users', [
             'foreignKey' => 'business_id',
         ]);
+        $this->hasMany('Bookings', [
+            'foreignKey' => 'business_id',
+        ]);
     }
 
     /**
