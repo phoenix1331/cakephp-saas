@@ -17,12 +17,14 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | Linting | `cakephp/cakephp-codesniffer` (installed as a dependency of `cakephp/app`), configured in `phpcs.xml` |
 | Git hooks | Husky (`.husky/`), runs `phpcs` inside the app container plus `osv-scanner` on the host - needs Node/npm on the host, `osv-scanner` installed locally |
 | Schema migrations | `cakephp/migrations` (Phinx-based), files in `config/Migrations/` |
+| Auth | `cakephp/authentication` (session + form login) + `cakephp/authorization` (policy checks), wired in `src/Application.php` |
 
 ## Key directories
 
 | Path | Purpose |
 |---|---|
-| `src/Controller/Admin/` | owner/staff dashboard - `BusinessesController`, `ServicesController`, `UsersController`, `BookingsController` baked (CRUD only, not yet behind auth - Phase 2) |
+| `src/Controller/Admin/` | owner/staff dashboard, behind session auth. `AppController` (base, requires login + policy checks) and `BusinessesController`, `ServicesController`, `UsersController` (+ `login`/`logout`), `BookingsController` |
+| `src/Controller/AppController.php` | shared public base - disables the identity check by default; public controllers must explicitly `skipAuthorization()` since they have no policy |
 | `src/Controller/` | public booking flow controllers (not yet built) |
 | `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable`, `BookingsTable`, `PlansTable` built (full domain model in place) |
 | `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking`, `Plan` built |
@@ -44,7 +46,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | `bookings` | `business_id`, `service_id`, `user_id`, `customer_id` (all FK), `status` (`pending`/`confirmed`/`cancelled`/`completed`), `reminder_sent_at` (nullable) | `belongsTo Businesses, Services, Users, Customers` |
 | `plans` | `staff_limit`, `stripe_price_id` (nullable), `price` | `hasMany Businesses` |
 
-Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `config/routes.php`) is baked for Businesses, Services, Users, Bookings - no auth gate yet, that's Phase 2.
+Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `config/routes.php`) is baked for Businesses, Services, Users, Bookings and now sits behind session auth - see Notable decisions for what's still open (tenant/policy wiring per action).
 
 ## Notable decisions
 
@@ -55,10 +57,16 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 - **Database connection uses `DATABASE_URL`** rather than the scaffold's default array-based `Datasources.default` config, so container and CI environments can override it with one variable.
 - **Multi-tenancy is single-database, shared-schema**, enforced via a `business_id` column plus `TenantScopeBehavior` (`src/Model/Behavior/TenantScopeBehavior.php`), the Table-level equivalent of a Laravel Eloquent global scope. Attached to `UsersTable`, `ServicesTable`, `CustomersTable`, `BookingsTable` (every table with a direct `business_id` column - `AvailabilitiesTable` is scoped indirectly via `user_id` and doesn't carry the column itself, so it's not attached there).
 - **`TenantScopeBehavior`'s tenant id is set explicitly via `setTenantId(int $id)`**, never read from a global or session inside the behavior itself - this keeps it unit-testable in isolation and makes every scoped query traceable to a concrete id. It hooks `Model.beforeFind` (adds a `WHERE business_id = ?`) and `Model.beforeSave` (stamps the tenant id on new entities, refuses to save a mismatched one). Calling `find()` or `save()` on a scoped table without calling `setTenantId()` first throws a `RuntimeException` rather than silently returning unscoped/cross-tenant data - this is deliberate fail-loud behaviour, not a bug. `tests/TestCase/Model/Behavior/TenantScopeBehaviorTest.php` uses hand-written two-tenant fixtures (not `bake`-generated) to prove cross-tenant isolation, since this is the one piece the brief flags as needing real tests from the start.
-- **The Admin controllers (`BusinessesController`, `ServicesController`, `UsersController`, `BookingsController`) now 500 on `Services`/`Users`/`Bookings`** because they query without calling `setTenantId()` - this is expected and left as-is until Phase 2 wires real tenant resolution from the logged-in user's `business_id` via `cakephp/authentication`. Do not add a hardcoded/stopgap tenant id to work around it.
+- **Session-based auth is wired** (`cakephp/authentication` + `cakephp/authorization`, installed and configured in `src/Application.php`) but two things are deliberately still open, both scoped to the next tasks rather than patched here:
+  - Admin CRUD actions don't yet call `setTenantId()` on their tables (500s with `TenantScopeBehavior`'s guard message) or `$this->Authorization->authorize()` (500s with "did not apply any authorization checks") - both need the logged-in identity's `business_id`/role, which is the next task ("Policy classes... checking both tenant ownership and role").
+  - `User` entities still have no password-hashing mutator - added once the signup flow (next task) actually creates users through the app rather than by hand.
+  - Do not add a hardcoded/stopgap tenant id or skip these checks to make the pages render early.
+- **Login (`Admin/UsersController::login`) looks a `User` up by email before knowing their tenant** - this is the one legitimate place a lookup must cross tenants by design. `TenantScopeBehavior::findUnscoped()` (a custom `find('unscoped')` finder, `implementedFinders`) is the explicit, tested escape hatch; the Password identifier's `OrmResolver` is configured with `'finder' => 'unscoped'` in `Application::getAuthenticationService()` to use it. This is the only place in the app that should ever call `find('unscoped')`.
+- **Authorization is structured so public controllers skip it explicitly, rather than one shared default skip.** `AppController` (public base) disables the identity check but does *not* call `skipAuthorization()` - each public controller (currently just `PagesController`) calls it itself in its own `initialize()`. `Admin\AppController` re-enables `requireIdentity` and allowlists only the `login` action. This means a new controller that forgets to either authorize or skip fails loudly (`AuthorizationMiddleware`'s end-of-request check) rather than silently passing.
 - **No Cashier-equivalent exists in CakePHP** - Stripe billing (Phase 5) will integrate `stripe/stripe-php` directly rather than through a framework wrapper.
 - **`declare(strict_types=1)` is enforced via `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`** in `phpcs.xml`, the PHPCS equivalent of Pint's `declare_strict_types` setting - PHPCS has no built-in flag for this, so the Slevomat sniff (already pulled in transitively by `cakephp/cakephp-codesniffer`) fills the gap and is `phpcbf`-fixable.
 - **The `app` container runs as the host UID/GID** (`user: "${UID:-1000}:${GID:-1000}"` in `docker-compose.yml`, sourced from a gitignored root `.env`) - without this, `bin/cake bake`/`migrations create` write root-owned files into the bind-mounted project, which the host user then can't edit or delete.
+- **`COMPOSER_HOME=/tmp/composer`** is set on the `app` service - the non-root UID has no writable `$HOME` for Composer's own cache directory otherwise (`composer require` still works without it, just with a cosmetic cache warning on every run).
 - **Password hashing is deliberately not yet added to the `User` entity** - `cakephp/authentication` isn't installed until Phase 2, and its `DefaultPasswordHasher` is what the mutator will use.
 - **`bake`-generated stub fixtures and controller/table tests are deleted immediately after baking** rather than kept as empty placeholders - they assert nothing (`markTestIncomplete`) and reference fixtures that don't exist once deleted.
 - **The "Staff can perform a Service" relationship (brief's `belongsToMany Staff`) is modelled as `Services belongsToMany Users`** via a `services_users` join table - there's no separate Staff entity, "staff" is just a `User` with `role = 'staff'`, and `bake` names the association after the actual target table.
@@ -68,4 +76,4 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 
 ## External integrations
 
-None yet. Planned: Stripe (`stripe/stripe-php`, Phase 5), `cakephp/authentication` + `cakephp/authorization` (Phase 2), `cakephp/queue` (Phase 4 upgrade).
+None yet. Planned: Stripe (`stripe/stripe-php`, Phase 5), `cakephp/queue` (Phase 4 upgrade).

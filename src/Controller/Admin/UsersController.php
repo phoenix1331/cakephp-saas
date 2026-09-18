@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Controller\AppController;
+use Cake\Http\Response;
 
 /**
  * Users Controller
@@ -12,6 +12,42 @@ use App\Controller\AppController;
  */
 class UsersController extends AppController
 {
+    /**
+     * Login method
+     *
+     * @return \Cake\Http\Response|null Redirects on successful login, renders the form otherwise.
+     */
+    public function login(): ?Response
+    {
+        $this->Authorization->skipAuthorization();
+
+        $result = $this->Authentication->getResult();
+        if ($result !== null && $result->isValid()) {
+            $redirect = $this->request->getQuery('redirect', ['controller' => 'Businesses', 'action' => 'index']);
+
+            return $this->redirect($redirect);
+        }
+
+        if ($this->request->is('post') && $result !== null && !$result->isValid()) {
+            $this->Flash->error(__('Invalid email or password.'));
+        }
+
+        return null;
+    }
+
+    /**
+     * Logout method
+     *
+     * @return \Cake\Http\Response|null Redirects to the login page.
+     */
+    public function logout(): ?Response
+    {
+        $this->Authorization->skipAuthorization();
+        $this->Authentication->logout();
+
+        return $this->redirect(['action' => 'login']);
+    }
+
     /**
      * Index method
      *

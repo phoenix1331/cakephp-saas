@@ -93,4 +93,25 @@ class TenantScopeBehaviorTest extends TestCase
         $this->expectException(RuntimeException::class);
         $customers->save($customer);
     }
+
+    public function testFindUnscopedBypassesTheTenantFilterEvenWithoutTenantId(): void
+    {
+        $users = TableRegistry::getTableLocator()->get('Users');
+
+        $results = $users->find('unscoped')->all();
+
+        $this->assertCount(2, $results);
+    }
+
+    public function testFindUnscopedIsOnlyTheExplicitBypassNotTheDefault(): void
+    {
+        $users = TableRegistry::getTableLocator()->get('Users');
+        $users->behaviors()->get('TenantScope')->setTenantId(1);
+
+        $scoped = $users->find()->all();
+        $unscoped = $users->find('unscoped')->all();
+
+        $this->assertCount(1, $scoped);
+        $this->assertCount(2, $unscoped);
+    }
 }

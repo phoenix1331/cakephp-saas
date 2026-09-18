@@ -22,6 +22,9 @@ class TenantScopeBehavior extends Behavior
 {
     protected array $_defaultConfig = [
         'field' => 'business_id',
+        'implementedFinders' => [
+            'unscoped' => 'findUnscoped',
+        ],
     ];
 
     protected ?int $tenantId = null;
@@ -48,7 +51,22 @@ class TenantScopeBehavior extends Behavior
     }
 
     /**
-     * Adds a WHERE condition restricting the query to the current tenant.
+     * A deliberate escape hatch for the rare, legitimate cross-tenant lookup
+     * (only login's "find this user by email, before we know their tenant"
+     * identifier query should ever use this). Marks the query so beforeFind()
+     * skips scoping it.
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query The query to leave unscoped.
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findUnscoped(SelectQuery $query): SelectQuery
+    {
+        return $query->applyOptions(['unscoped' => true]);
+    }
+
+    /**
+     * Adds a WHERE condition restricting the query to the current tenant,
+     * unless the query was built via find('unscoped').
      *
      * @param \Cake\Event\EventInterface $event The beforeFind event.
      * @param \Cake\ORM\Query\SelectQuery $query The query to scope.
@@ -58,6 +76,10 @@ class TenantScopeBehavior extends Behavior
      */
     public function beforeFind(EventInterface $event, SelectQuery $query, ArrayObject $options, bool $primary): void
     {
+        if (!empty($options['unscoped'])) {
+            return;
+        }
+
         if ($this->tenantId === null) {
             throw new RuntimeException(sprintf(
                 'TenantScopeBehavior on %s requires setTenantId() to be called before querying.',

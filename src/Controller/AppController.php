@@ -42,6 +42,15 @@ class AppController extends Controller
         parent::initialize();
 
         $this->loadComponent('Flash');
+        $this->loadComponent('Authentication.Authentication');
+        $this->loadComponent('Authorization.Authorization');
+
+        // Public controllers (the guest booking flow, static pages) never
+        // require a logged-in identity or a policy check - they must call
+        // $this->Authorization->skipAuthorization() themselves if they have
+        // no policy to check. Admin/AppController re-enables the identity
+        // check and performs real authorize() calls per action.
+        $this->Authentication->disableIdentityCheck();
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.
