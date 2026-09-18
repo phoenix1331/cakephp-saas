@@ -22,6 +22,6 @@ class AppController extends BaseAppController
         parent::initialize();
 
         $this->Authentication->setConfig('requireIdentity', true);
-        $this->Authentication->addUnauthenticatedActions(['login']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'signup']);
     }
 }

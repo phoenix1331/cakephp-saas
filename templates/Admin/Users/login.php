@@ -16,6 +16,7 @@
             </fieldset>
             <?= $this->Form->button(__('Log in')) ?>
             <?= $this->Form->end() ?>
+            <?= $this->Html->link(__('Sign up'), ['action' => 'signup']) ?>
         </div>
     </div>
 </div>

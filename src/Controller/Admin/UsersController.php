@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use Cake\Http\Response;
+use Cake\Utility\Text;
 
 /**
  * Users Controller
@@ -12,6 +13,63 @@ use Cake\Http\Response;
  */
 class UsersController extends AppController
 {
+    /**
+     * Signup method
+     *
+     * Creates a new Business and its first User (the owner) together - the
+     * one place in the app a User is created without an existing tenant to
+     * scope to, since signup is what creates the tenant in the first place.
+     *
+     * @return \Cake\Http\Response|null Redirects on successful signup, renders the form otherwise.
+     */
+    public function signup(): ?Response
+    {
+        $this->Authorization->skipAuthorization();
+
+        $businesses = $this->Users->Businesses;
+        $business = $businesses->newEmptyEntity();
+        $user = $this->Users->newEmptyEntity();
+
+        if ($this->request->is('post')) {
+            $data = $this->request->getData();
+
+            $business = $businesses->newEntity([
+                'name' => $data['business_name'] ?? null,
+                'slug' => Text::slug(mb_strtolower((string)($data['business_name'] ?? '')), '-'),
+                'timezone' => $data['timezone'] ?? 'Europe/London',
+            ]);
+            $saved = $businesses->getConnection()->transactional(
+                function () use ($businesses, $business, $data, &$user): bool {
+                    if (!$businesses->save($business)) {
+                        return false;
+                    }
+
+                    $this->Users->behaviors()->get('TenantScope')->setTenantId($business->id);
+                    $user = $this->Users->newEntity([
+                        'business_id' => $business->id,
+                        'email' => $data['email'] ?? null,
+                        'password' => $data['password'] ?? null,
+                        'role' => 'owner',
+                    ]);
+
+                    return (bool)$this->Users->save($user);
+                },
+            );
+
+            if ($saved) {
+                $this->Flash->success(__('Your account has been created. Please log in.'));
+
+                return $this->redirect(['action' => 'login']);
+            }
+
+            $this->Flash->error(__('Your account could not be created. Please check the form and try again.'));
+        }
+
+        $this->set(compact('business', 'user'));
+
+        return null;
+    }
+
     /**
      * Login method
      *
