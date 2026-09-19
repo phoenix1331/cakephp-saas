@@ -19,6 +19,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | Schema migrations | `cakephp/migrations` (Phinx-based), files in `config/Migrations/` |
 | Auth | `cakephp/authentication` (session + form login) + `cakephp/authorization` (policy checks), wired in `src/Application.php` |
 | CSS | Tailwind CSS v4 (`@tailwindcss/cli`, installed on the host via `npm`, not in the app container - no Node in the FrankenPHP image). Source `webroot/css/src/app.css`, compiled output `webroot/css/app.css` committed to git, rebuilt via `make css`/`make css-watch` |
+| Mail | Default `EmailTransport` is `DebugTransport` (`config/app.php`) - no SMTP server anywhere in this environment yet. Swap via `app_local.php`/environment variables for a real deployment, same pattern as `DATABASE_URL` |
 
 ## Key directories
 
@@ -34,6 +35,8 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 | `src/Model/Behavior/` | `TenantScopeBehavior` - attached to `Users`, `Services`, `Customers`, `Bookings` |
 | `src/Policy/` | `BusinessPolicy`, `ServicePolicy`, `BookingPolicy`, `UserPolicy` - tenant ownership + role checks, resolved by convention (`Authorization.Orm` resolver) from the Entity class name |
 | `src/Booking/SlotFinder.php` | Computes bookable slot start times for a staff member/service/date: Availability window minus existing Bookings minus a configurable buffer. Plain PHP class, not a Table/Behavior - it's computation over persisted data, not persistence itself |
+| `src/Booking/IcsBuilder.php` | Hand-rolled RFC 5545 single-VEVENT `.ics` builder (line folding, TEXT escaping, UTC conversion) - deliberately no library dependency for something this narrow |
+| `src/Mailer/BookingMailer.php` | `confirmation(Booking $booking)` - sends the guest a confirmation email with the `.ics` as a base64 attachment. Templates: `templates/email/{text,html}/confirmation.php` |
 | `plugins/` | CakePHP plugins - `TenantScope` planned as an extraction target (Phase 6) |
 | `bin/cake` | console entry point, the `artisan` equivalent |
 
@@ -92,6 +95,8 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 - **The guest booking form matches `Customer` by `(business_id, email)` via `Customers::findOrCreate()`**, not a manual find-then-save - `findOrCreate()`'s data/callback only runs for a genuinely new row (confirmed by reading its source: it returns the existing match before ever reaching the callback), so a repeat customer's name/phone from an earlier booking is never silently overwritten by a later one.
 - **`BookingsController::createBooking()` sets the tenant on all four tables the save touches (`Customers`, `Bookings`, `Services`, `Users`), not just the ones queried directly** - `BookingsTable::buildRules()`'s `existsIn` checks against `Services`/`Users`/`Customers` during `save()` each independently require their own `setTenantId()` call; missing any one throws the same `TenantScopeBehavior` guard mid-save. Same class of bug as the `Admin\AppController::beforeFilter()` fix from the Policy classes task - any code that saves a `Bookings` row needs to scope every table `buildRules()` touches, not just the primary one.
 - **The double-booking guard re-validates the chosen slot against a fresh `SlotFinder::findSlots()` call at POST time**, not just at initial page render - a slot picked at GET time can be taken by someone else before this customer submits. Confirmed with a real test that submitting an already-booked slot re-renders the form with an error and creates nothing, rather than either silently succeeding or 500ing.
+- **Mailer template resolution is `templates/email/{format}/{action}.php` - not `{mailer}_{action}.php`.** `Mailer::viewBuilder()->setTemplate($action)` uses the bare action name only; CakePHP doesn't namespace by mailer class unless `setTemplatePath()` is called explicitly. Naming the templates `booking_confirmation.php` (a natural first guess) threw `MissingTemplateException` on every `send()` call - and because the `Booking`/`Customer` rows had already saved successfully before the mailer step ran, this manifested as a real booking silently succeeding in the database while the customer's browser got a 500. Caught by testing the real `send()` call against the real templates (`BookingMailerTest`), not a mocked view layer. If a second Mailer ever needs an action name that collides with an existing one, it will need `setTemplatePath()` to disambiguate.
+- **`IcsBuilder` is hand-rolled, not a library dependency** - RFC 5545 line folding (75 octets, CRLF, single-space continuation), TEXT escaping (`,`, `;`, `\`, newlines), and UTC formatting are all implemented and unit-tested directly (`IcsBuilderTest`), including a timezone-conversion case (`Europe/London` BST → UTC) to prove `DateTime::setTimezone('UTC')` is actually being applied, not just assumed correct because the app's own default timezone happens to already be UTC.
 
 ## External integrations
 

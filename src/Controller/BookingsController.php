@@ -12,6 +12,7 @@ use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
 use Cake\I18n\Date;
 use Cake\I18n\DateTime;
+use Cake\Mailer\MailerAwareTrait;
 
 /**
  * The public, unauthenticated guest booking flow at /book/{slug}.
@@ -21,6 +22,8 @@ use Cake\I18n\DateTime;
  */
 class BookingsController extends AppController
 {
+    use MailerAwareTrait;
+
     protected Business $business;
 
     /**
@@ -160,6 +163,11 @@ class BookingsController extends AppController
                 );
 
                 if ($saved) {
+                    $booking->set('business', $this->business);
+                    $booking->set('service', $service);
+                    $booking->set('customer', $customer);
+                    $this->getMailer('Booking')->send('confirmation', [$booking]);
+
                     $this->Flash->success(__('Your booking is confirmed.'));
 
                     return $this->redirect(['action' => 'index', 'slug' => $this->business->slug]);
