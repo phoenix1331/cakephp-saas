@@ -25,7 +25,7 @@ A booking and scheduling SaaS for solo service businesses (hairdressers, tutors,
 |---|---|
 | `src/Controller/Admin/` | owner/staff dashboard, behind session auth. `AppController` (base, requires login + policy checks) and `BusinessesController`, `ServicesController`, `UsersController` (+ `signup`/`login`/`logout`), `BookingsController` |
 | `src/Controller/AppController.php` | shared public base - disables the identity check by default; public controllers must explicitly `skipAuthorization()` since they have no policy |
-| `src/Controller/` | public booking flow controllers (not yet built) |
+| `src/Controller/BookingsController.php` | public guest booking flow at `/book/{slug}` - resolves the tenant `Business` from the slug in `beforeFilter()`, 404s on an unknown slug. `index()` only (service/slot/booking steps are later Phase 3 tasks) |
 | `src/Model/Table/` | query logic, associations, validation - `BusinessesTable`, `UsersTable`, `ServicesTable`, `AvailabilitiesTable`, `CustomersTable`, `BookingsTable`, `PlansTable` built (full domain model in place) |
 | `src/Model/Entity/` | data objects - `Business`, `User`, `Service`, `Availability`, `Customer`, `Booking`, `Plan` built |
 | `config/Migrations/` | Phinx-based schema migrations |
@@ -77,6 +77,8 @@ Admin CRUD (`src/Controller/Admin/`, routed under the `Admin` prefix added in `c
 - **`availabilities`' day-of-week/date mutual exclusivity is enforced in `AvailabilitiesTable::buildRules()` rather than `validationDefault()`** - CakePHP's field-level `allowEmpty*` skips all rules (including custom ones) for a field once it's empty, which breaks a validator-level "neither set" check. `buildRules()` runs against the full entity regardless of individual field emptiness, so it's the correct layer for cross-field invariants like this.
 - **`businesses.plan_id`'s FK uses `RESTRICT` (not `CASCADE`) on delete** - unlike the other CASCADE relationships where child rows become meaningless once the parent is gone, a `Plan` shouldn't be deletable while businesses are still subscribed to it.
 - **The full domain model is in place** (see table above) with all associations wired in both directions and `TenantScopeBehavior` attached to every tenant-scoped table.
+- **Public booking routes live under a `/book/{slug}` scope in `config/routes.php`**, separate from the `/` and `Admin` scopes - `slug` is a route parameter read via `$this->request->getParam('slug')` in `BookingsController::beforeFilter()`, not a controller action argument, so every action under this scope gets the resolved `$business` for free via `$this->set('business', ...)`. A cross-tenant lookup here isn't the failure mode to guard against (the whole point is a public, unauthenticated link) - the only guard needed is 404 on an unknown slug, via `RecordNotFoundException` caught and rethrown as `NotFoundException`.
+- **`BookingsController` (public) is a different class from `Admin\BookingsController`** (owner/staff CRUD) - same base name, different namespace, matching the brief's own repo structure (`src/Controller/BookingsController.php` for the public flow vs `src/Controller/Admin/BookingsController.php` for the dashboard). Don't confuse the two when extending the booking flow in later tasks.
 
 ## External integrations
 

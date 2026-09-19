@@ -78,6 +78,13 @@ return function (RouteBuilder $routes): void {
         $builder->fallbacks();
     });
 
+    // Public guest booking flow - the tenant is resolved from the slug by
+    // BookingsController::beforeFilter(), not from a logged-in identity.
+    // Later booking-flow tasks add further actions under this same scope.
+    $routes->scope('/book/{slug}', function (RouteBuilder $builder): void {
+        $builder->connect('/', ['controller' => 'Bookings', 'action' => 'index']);
+    });
+
     $routes->prefix('Admin', function (RouteBuilder $builder): void {
         $builder->fallbacks();
     });
