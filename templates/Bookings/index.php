@@ -13,7 +13,7 @@
         <?php foreach ($services as $service): ?>
         <li>
             <a
-                href="<?= $this->Url->build(['action' => 'service', $service->id]) ?>"
+                href="<?= $this->Url->build(['action' => 'service', $service->id, 'slug' => $business->slug]) ?>"
                 class="flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50"
             >
                 <div>

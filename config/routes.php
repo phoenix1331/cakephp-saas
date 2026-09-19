@@ -85,6 +85,8 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/', ['controller' => 'Bookings', 'action' => 'index']);
         $builder->connect('/service/{id}', ['controller' => 'Bookings', 'action' => 'service'])
             ->setPass(['id']);
+        $builder->connect('/service/{service_id}/staff/{user_id}', ['controller' => 'Bookings', 'action' => 'book'])
+            ->setPass(['service_id', 'user_id']);
     });
 
     $routes->prefix('Admin', function (RouteBuilder $builder): void {
