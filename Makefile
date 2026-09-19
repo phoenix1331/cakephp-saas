@@ -1,4 +1,4 @@
-.PHONY: up down build shell migrate seed test logs fresh lint lint-fix help
+.PHONY: up down build shell migrate seed test logs fresh lint lint-fix css css-watch help
 
 up: ## start containers in the background
 	@docker compose up -d
@@ -29,6 +29,12 @@ lint: ## check code style with phpcs
 
 lint-fix: ## fix code style issues with phpcbf
 	@docker compose exec app vendor/bin/phpcbf
+
+css: ## build Tailwind CSS once (runs on the host, not in the container)
+	@npx @tailwindcss/cli -i webroot/css/src/app.css -o webroot/css/app.css --minify
+
+css-watch: ## rebuild Tailwind CSS on file changes
+	@npx @tailwindcss/cli -i webroot/css/src/app.css -o webroot/css/app.css --watch
 
 fresh: ## drop and rebuild the database, then migrate and seed
 	@docker compose exec app bin/cake migrations rollback --target=0 --force

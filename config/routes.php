@@ -83,6 +83,8 @@ return function (RouteBuilder $routes): void {
     // Later booking-flow tasks add further actions under this same scope.
     $routes->scope('/book/{slug}', function (RouteBuilder $builder): void {
         $builder->connect('/', ['controller' => 'Bookings', 'action' => 'index']);
+        $builder->connect('/service/{id}', ['controller' => 'Bookings', 'action' => 'service'])
+            ->setPass(['id']);
     });
 
     $routes->prefix('Admin', function (RouteBuilder $builder): void {

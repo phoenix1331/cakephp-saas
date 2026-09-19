@@ -28,6 +28,7 @@ class BookingsController extends AppController
         parent::beforeFilter($event);
 
         $this->Authorization->skipAuthorization();
+        $this->viewBuilder()->setLayout('booking');
 
         $slug = $this->request->getParam('slug');
 
@@ -49,12 +50,48 @@ class BookingsController extends AppController
     /**
      * Index method
      *
-     * Landing page for a business's public booking link - service selection
-     * comes in a later task.
+     * Lists the services a customer can book with this Business.
      *
      * @return void
      */
     public function index(): void
     {
+        $services = $this->fetchTable('Services')
+            ->find('unscoped')
+            ->where(['business_id' => $this->business->id])
+            ->orderBy(['name' => 'ASC'])
+            ->all();
+
+        $this->set(compact('services'));
+    }
+
+    /**
+     * Service method
+     *
+     * Shows which staff can perform the chosen Service, so the customer can
+     * pick who they want - availability/slot computation is a later task.
+     *
+     * @param string|null $id Service id.
+     * @return void
+     * @throws \Cake\Http\Exception\NotFoundException When the service does not belong to this Business.
+     */
+    public function service(?string $id = null): void
+    {
+        try {
+            $service = $this->fetchTable('Services')
+                ->find('unscoped')
+                ->where(['id' => $id, 'business_id' => $this->business->id])
+                ->contain(['Users' => function ($query) {
+                    return $query->find('unscoped');
+                }])
+                ->firstOrFail();
+        } catch (RecordNotFoundException $exception) {
+            throw new NotFoundException(
+                message: sprintf('No service `%s` found for this business.', (string)$id),
+                previous: $exception,
+            );
+        }
+
+        $this->set(compact('service'));
     }
 }
