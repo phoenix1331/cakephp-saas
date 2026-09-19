@@ -28,6 +28,15 @@ class UsersFixture extends TestFixture
                 'created' => '2026-01-01 09:00:00',
                 'modified' => '2026-01-01 09:00:00',
             ],
+            [
+                'id' => 3,
+                'business_id' => 1,
+                'email' => 'staff@alpha-hair-studio.test',
+                'password' => 'not-a-real-hash',
+                'role' => 'staff',
+                'created' => '2026-01-01 09:00:00',
+                'modified' => '2026-01-01 09:00:00',
+            ],
         ];
         parent::init();
     }

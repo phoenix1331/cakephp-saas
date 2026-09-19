@@ -113,8 +113,11 @@ class UsersController extends AppController
      */
     public function index()
     {
-        $query = $this->Users->find()
-            ->contain(['Businesses']);
+        // Tenant scoping already restricts this to the current Business -
+        // there's no per-row policy question left to ask for a listing.
+        $this->Authorization->skipAuthorization();
+
+        $query = $this->Users->find();
         $users = $this->paginate($query);
 
         $this->set(compact('users'));
@@ -129,20 +132,30 @@ class UsersController extends AppController
      */
     public function view(?string $id = null)
     {
-        $user = $this->Users->get($id, contain: ['Businesses', 'Services', 'Availabilities', 'Bookings']);
+        $user = $this->Users->get($id, contain: ['Services', 'Availabilities', 'Bookings']);
+        $this->Authorization->authorize($user);
         $this->set(compact('user'));
     }
 
     /**
      * Add method
      *
+     * Invites a new staff member to the current Business - any logged-in
+     * User may do this, not just the owner (see UserPolicy::canAdd()).
+     *
      * @return \Cake\Http\Response|null|void Redirects on successful add, renders view otherwise.
      */
     public function add()
     {
-        $user = $this->Users->newEmptyEntity();
+        $user = $this->Users->newEntity([
+            'business_id' => $this->Authentication->getIdentityData('business_id'),
+        ]);
+        $this->Authorization->authorize($user);
+
         if ($this->request->is('post')) {
-            $user = $this->Users->patchEntity($user, $this->request->getData());
+            $data = $this->request->getData();
+            $data['business_id'] = $this->Authentication->getIdentityData('business_id');
+            $user = $this->Users->patchEntity($user, $data);
             if ($this->Users->save($user)) {
                 $this->Flash->success(__('The user has been saved.'));
 
@@ -150,9 +163,8 @@ class UsersController extends AppController
             }
             $this->Flash->error(__('The user could not be saved. Please, try again.'));
         }
-        $businesses = $this->Users->Businesses->find('list', limit: 200)->all();
         $services = $this->Users->Services->find('list', limit: 200)->all();
-        $this->set(compact('user', 'businesses', 'services'));
+        $this->set(compact('user', 'services'));
     }
 
     /**
@@ -165,6 +177,8 @@ class UsersController extends AppController
     public function edit(?string $id = null)
     {
         $user = $this->Users->get($id, contain: ['Services']);
+        $this->Authorization->authorize($user);
+
         if ($this->request->is(['patch', 'post', 'put'])) {
             $user = $this->Users->patchEntity($user, $this->request->getData());
             if ($this->Users->save($user)) {
@@ -174,9 +188,8 @@ class UsersController extends AppController
             }
             $this->Flash->error(__('The user could not be saved. Please, try again.'));
         }
-        $businesses = $this->Users->Businesses->find('list', limit: 200)->all();
         $services = $this->Users->Services->find('list', limit: 200)->all();
-        $this->set(compact('user', 'businesses', 'services'));
+        $this->set(compact('user', 'services'));
     }
 
     /**
@@ -190,6 +203,8 @@ class UsersController extends AppController
     {
         $this->request->allowMethod(['post', 'delete']);
         $user = $this->Users->get($id);
+        $this->Authorization->authorize($user);
+
         if ($this->Users->delete($user)) {
             $this->Flash->success(__('The user has been deleted.'));
         } else {

@@ -19,10 +19,6 @@
             <h3><?= h($user->email) ?></h3>
             <table>
                 <tr>
-                    <th><?= __('Business') ?></th>
-                    <td><?= $user->hasValue('business') ? $this->Html->link($user->business->name, ['controller' => 'Businesses', 'action' => 'view', $user->business->id]) : '' ?></td>
-                </tr>
-                <tr>
                     <th><?= __('Email') ?></th>
                     <td><?= h($user->email) ?></td>
                 </tr>

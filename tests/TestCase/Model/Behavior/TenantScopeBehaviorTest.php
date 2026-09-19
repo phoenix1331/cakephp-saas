@@ -24,8 +24,10 @@ class TenantScopeBehaviorTest extends TestCase
 
         $results = $users->find()->all();
 
-        $this->assertCount(1, $results);
-        $this->assertSame(1, $results->first()->business_id);
+        $this->assertGreaterThan(0, $results->count());
+        foreach ($results as $user) {
+            $this->assertSame(1, $user->business_id);
+        }
     }
 
     public function testFindDoesNotLeakOtherTenantsRows(): void
@@ -98,9 +100,10 @@ class TenantScopeBehaviorTest extends TestCase
     {
         $users = TableRegistry::getTableLocator()->get('Users');
 
-        $results = $users->find('unscoped')->all();
+        $businessIds = $users->find('unscoped')->all()->extract('business_id')->toList();
 
-        $this->assertCount(2, $results);
+        $this->assertContains(1, $businessIds);
+        $this->assertContains(2, $businessIds);
     }
 
     public function testFindUnscopedIsOnlyTheExplicitBypassNotTheDefault(): void
@@ -111,7 +114,9 @@ class TenantScopeBehaviorTest extends TestCase
         $scoped = $users->find()->all();
         $unscoped = $users->find('unscoped')->all();
 
-        $this->assertCount(1, $scoped);
-        $this->assertCount(2, $unscoped);
+        $this->assertLessThan($unscoped->count(), $scoped->count());
+        foreach ($scoped as $user) {
+            $this->assertSame(1, $user->business_id);
+        }
     }
 }

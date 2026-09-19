@@ -2,7 +2,6 @@
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\User $user
- * @var string[]|\Cake\Collection\CollectionInterface $businesses
  * @var string[]|\Cake\Collection\CollectionInterface $services
  */
 ?>
@@ -24,7 +23,6 @@
             <fieldset>
                 <legend><?= __('Edit User') ?></legend>
                 <?php
-                    echo $this->Form->control('business_id', ['options' => $businesses]);
                     echo $this->Form->control('email');
                     echo $this->Form->control('password');
                     echo $this->Form->control('role');
