@@ -1,4 +1,4 @@
-.PHONY: up down build shell migrate seed test logs fresh lint lint-fix css css-watch help
+.PHONY: up down build shell migrate seed test logs fresh lint lint-fix css css-watch send-reminders help
 
 up: ## start containers in the background
 	@docker compose up -d
@@ -35,6 +35,9 @@ css: ## build Tailwind CSS once (runs on the host, not in the container)
 
 css-watch: ## rebuild Tailwind CSS on file changes
 	@npx @tailwindcss/cli -i webroot/css/src/app.css -o webroot/css/app.css --watch
+
+send-reminders: ## send booking reminders due in the next 24 hours (the cron entry runs this every 10-15 minutes)
+	@docker compose exec app bin/cake send_booking_reminders
 
 fresh: ## drop and rebuild the database, then migrate and seed
 	@docker compose exec app bin/cake migrations rollback --target=0 --force

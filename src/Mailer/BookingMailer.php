@@ -29,6 +29,36 @@ class BookingMailer extends Mailer
      */
     public function confirmation(Booking $booking): void
     {
+        $this
+            ->setTo($booking->customer->email, $booking->customer->name)
+            ->setSubject(sprintf('Your booking with %s is confirmed', $booking->business->name))
+            ->setViewVars(compact('booking'))
+            ->setAttachments($this->icsAttachment($booking));
+    }
+
+    /**
+     * Sends the guest a reminder for an upcoming booking, with the same
+     * .ics attachment as the confirmation email. Expects $booking to
+     * already have Business, Service and Customer contained.
+     *
+     * @param \App\Model\Entity\Booking $booking The upcoming Booking.
+     * @return void
+     */
+    public function reminder(Booking $booking): void
+    {
+        $this
+            ->setTo($booking->customer->email, $booking->customer->name)
+            ->setSubject(sprintf('Reminder: your booking with %s is coming up', $booking->business->name))
+            ->setViewVars(compact('booking'))
+            ->setAttachments($this->icsAttachment($booking));
+    }
+
+    /**
+     * @param \App\Model\Entity\Booking $booking The Booking to build an .ics for.
+     * @return array<string, array<string, string>>
+     */
+    private function icsAttachment(Booking $booking): array
+    {
         $ics = new IcsBuilder(
             uid: sprintf('booking-%d@slotwise.local', $booking->id),
             summary: $booking->service->name . ' at ' . $booking->business->name,
@@ -42,15 +72,11 @@ class BookingMailer extends Mailer
             location: $booking->business->name,
         );
 
-        $this
-            ->setTo($booking->customer->email, $booking->customer->name)
-            ->setSubject(sprintf('Your booking with %s is confirmed', $booking->business->name))
-            ->setViewVars(compact('booking'))
-            ->setAttachments([
-                'booking.ics' => [
-                    'data' => $ics->build(),
-                    'mimetype' => 'text/calendar',
-                ],
-            ]);
+        return [
+            'booking.ics' => [
+                'data' => $ics->build(),
+                'mimetype' => 'text/calendar',
+            ],
+        ];
     }
 }
