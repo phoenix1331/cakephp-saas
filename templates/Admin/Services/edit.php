@@ -2,7 +2,6 @@
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\Service $service
- * @var string[]|\Cake\Collection\CollectionInterface $businesses
  * @var string[]|\Cake\Collection\CollectionInterface $users
  */
 ?>
@@ -24,7 +23,6 @@
             <fieldset>
                 <legend><?= __('Edit Service') ?></legend>
                 <?php
-                    echo $this->Form->control('business_id', ['options' => $businesses]);
                     echo $this->Form->control('name');
                     echo $this->Form->control('duration_minutes');
                     echo $this->Form->control('price');

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use Cake\Http\Response;
+
 /**
  * Businesses Controller
  *
@@ -13,15 +15,18 @@ class BusinessesController extends AppController
     /**
      * Index method
      *
-     * @return \Cake\Http\Response|null|void Renders view
+     * A User belongs to exactly one Business, so there is no multi-business
+     * list to show - index() is a settings-page entry point that redirects
+     * straight to the logged-in identity's own Business.
+     *
+     * @return \Cake\Http\Response Redirects to view() for the current Business.
      */
-    public function index()
+    public function index(): Response
     {
-        $query = $this->Businesses->find()
-            ->contain(['Plans']);
-        $businesses = $this->paginate($query);
+        // Redirects to view(), which performs the real authorization check.
+        $this->Authorization->skipAuthorization();
 
-        $this->set(compact('businesses'));
+        return $this->redirect(['action' => 'view', $this->Authentication->getIdentityData('business_id')]);
     }
 
     /**
@@ -34,28 +39,8 @@ class BusinessesController extends AppController
     public function view(?string $id = null)
     {
         $business = $this->Businesses->get($id, contain: ['Plans', 'Users', 'Bookings']);
+        $this->Authorization->authorize($business);
         $this->set(compact('business'));
-    }
-
-    /**
-     * Add method
-     *
-     * @return \Cake\Http\Response|null|void Redirects on successful add, renders view otherwise.
-     */
-    public function add()
-    {
-        $business = $this->Businesses->newEmptyEntity();
-        if ($this->request->is('post')) {
-            $business = $this->Businesses->patchEntity($business, $this->request->getData());
-            if ($this->Businesses->save($business)) {
-                $this->Flash->success(__('The business has been saved.'));
-
-                return $this->redirect(['action' => 'index']);
-            }
-            $this->Flash->error(__('The business could not be saved. Please, try again.'));
-        }
-        $plans = $this->Businesses->Plans->find('list', limit: 200)->all();
-        $this->set(compact('business', 'plans'));
     }
 
     /**
@@ -68,6 +53,8 @@ class BusinessesController extends AppController
     public function edit(?string $id = null)
     {
         $business = $this->Businesses->get($id, contain: []);
+        $this->Authorization->authorize($business);
+
         if ($this->request->is(['patch', 'post', 'put'])) {
             $business = $this->Businesses->patchEntity($business, $this->request->getData());
             if ($this->Businesses->save($business)) {
@@ -79,25 +66,5 @@ class BusinessesController extends AppController
         }
         $plans = $this->Businesses->Plans->find('list', limit: 200)->all();
         $this->set(compact('business', 'plans'));
-    }
-
-    /**
-     * Delete method
-     *
-     * @param string|null $id Business id.
-     * @return \Cake\Http\Response|null Redirects to index.
-     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
-     */
-    public function delete(?string $id = null)
-    {
-        $this->request->allowMethod(['post', 'delete']);
-        $business = $this->Businesses->get($id);
-        if ($this->Businesses->delete($business)) {
-            $this->Flash->success(__('The business has been deleted.'));
-        } else {
-            $this->Flash->error(__('The business could not be deleted. Please, try again.'));
-        }
-
-        return $this->redirect(['action' => 'index']);
     }
 }

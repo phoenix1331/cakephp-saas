@@ -12,7 +12,6 @@
             <thead>
                 <tr>
                     <th><?= $this->Paginator->sort('id') ?></th>
-                    <th><?= $this->Paginator->sort('business_id') ?></th>
                     <th><?= $this->Paginator->sort('service_id') ?></th>
                     <th><?= $this->Paginator->sort('user_id') ?></th>
                     <th><?= $this->Paginator->sort('customer_id') ?></th>
@@ -29,7 +28,6 @@
                 <?php foreach ($bookings as $booking): ?>
                 <tr>
                     <td><?= $this->Number->format($booking->id) ?></td>
-                    <td><?= $booking->hasValue('business') ? $this->Html->link($booking->business->name, ['controller' => 'Businesses', 'action' => 'view', $booking->business->id]) : '' ?></td>
                     <td><?= $booking->hasValue('service') ? $this->Html->link($booking->service->name, ['controller' => 'Services', 'action' => 'view', $booking->service->id]) : '' ?></td>
                     <td><?= $booking->hasValue('user') ? $this->Html->link($booking->user->email, ['controller' => 'Users', 'action' => 'view', $booking->user->id]) : '' ?></td>
                     <td><?= $booking->hasValue('customer') ? $this->Html->link($booking->customer->name, ['controller' => 'Customers', 'action' => 'view', $booking->customer->id]) : '' ?></td>

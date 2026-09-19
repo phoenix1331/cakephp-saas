@@ -2,7 +2,6 @@
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\Booking $booking
- * @var string[]|\Cake\Collection\CollectionInterface $businesses
  * @var string[]|\Cake\Collection\CollectionInterface $services
  * @var string[]|\Cake\Collection\CollectionInterface $users
  * @var string[]|\Cake\Collection\CollectionInterface $customers
@@ -26,7 +25,6 @@
             <fieldset>
                 <legend><?= __('Edit Booking') ?></legend>
                 <?php
-                    echo $this->Form->control('business_id', ['options' => $businesses]);
                     echo $this->Form->control('service_id', ['options' => $services]);
                     echo $this->Form->control('user_id', ['options' => $users]);
                     echo $this->Form->control('customer_id', ['options' => $customers]);

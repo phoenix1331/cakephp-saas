@@ -19,10 +19,6 @@
             <h3><?= h($booking->status) ?></h3>
             <table>
                 <tr>
-                    <th><?= __('Business') ?></th>
-                    <td><?= $booking->hasValue('business') ? $this->Html->link($booking->business->name, ['controller' => 'Businesses', 'action' => 'view', $booking->business->id]) : '' ?></td>
-                </tr>
-                <tr>
                     <th><?= __('Service') ?></th>
                     <td><?= $booking->hasValue('service') ? $this->Html->link($booking->service->name, ['controller' => 'Services', 'action' => 'view', $booking->service->id]) : '' ?></td>
                 </tr>

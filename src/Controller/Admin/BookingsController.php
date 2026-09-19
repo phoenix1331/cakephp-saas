@@ -17,8 +17,12 @@ class BookingsController extends AppController
      */
     public function index()
     {
+        // Tenant scoping already restricts this to the current Business -
+        // there's no per-row policy question left to ask for a listing.
+        $this->Authorization->skipAuthorization();
+
         $query = $this->Bookings->find()
-            ->contain(['Businesses', 'Services', 'Users', 'Customers']);
+            ->contain(['Services', 'Users', 'Customers']);
         $bookings = $this->paginate($query);
 
         $this->set(compact('bookings'));
@@ -33,7 +37,8 @@ class BookingsController extends AppController
      */
     public function view(?string $id = null)
     {
-        $booking = $this->Bookings->get($id, contain: ['Businesses', 'Services', 'Users', 'Customers']);
+        $booking = $this->Bookings->get($id, contain: ['Services', 'Users', 'Customers']);
+        $this->Authorization->authorize($booking);
         $this->set(compact('booking'));
     }
 
@@ -44,9 +49,15 @@ class BookingsController extends AppController
      */
     public function add()
     {
-        $booking = $this->Bookings->newEmptyEntity();
+        $booking = $this->Bookings->newEntity([
+            'business_id' => $this->Authentication->getIdentityData('business_id'),
+        ]);
+        $this->Authorization->authorize($booking);
+
         if ($this->request->is('post')) {
-            $booking = $this->Bookings->patchEntity($booking, $this->request->getData());
+            $data = $this->request->getData();
+            $data['business_id'] = $this->Authentication->getIdentityData('business_id');
+            $booking = $this->Bookings->patchEntity($booking, $data);
             if ($this->Bookings->save($booking)) {
                 $this->Flash->success(__('The booking has been saved.'));
 
@@ -54,11 +65,10 @@ class BookingsController extends AppController
             }
             $this->Flash->error(__('The booking could not be saved. Please, try again.'));
         }
-        $businesses = $this->Bookings->Businesses->find('list', limit: 200)->all();
         $services = $this->Bookings->Services->find('list', limit: 200)->all();
         $users = $this->Bookings->Users->find('list', limit: 200)->all();
         $customers = $this->Bookings->Customers->find('list', limit: 200)->all();
-        $this->set(compact('booking', 'businesses', 'services', 'users', 'customers'));
+        $this->set(compact('booking', 'services', 'users', 'customers'));
     }
 
     /**
@@ -71,6 +81,8 @@ class BookingsController extends AppController
     public function edit(?string $id = null)
     {
         $booking = $this->Bookings->get($id, contain: []);
+        $this->Authorization->authorize($booking);
+
         if ($this->request->is(['patch', 'post', 'put'])) {
             $booking = $this->Bookings->patchEntity($booking, $this->request->getData());
             if ($this->Bookings->save($booking)) {
@@ -80,11 +92,10 @@ class BookingsController extends AppController
             }
             $this->Flash->error(__('The booking could not be saved. Please, try again.'));
         }
-        $businesses = $this->Bookings->Businesses->find('list', limit: 200)->all();
         $services = $this->Bookings->Services->find('list', limit: 200)->all();
         $users = $this->Bookings->Users->find('list', limit: 200)->all();
         $customers = $this->Bookings->Customers->find('list', limit: 200)->all();
-        $this->set(compact('booking', 'businesses', 'services', 'users', 'customers'));
+        $this->set(compact('booking', 'services', 'users', 'customers'));
     }
 
     /**
@@ -98,6 +109,8 @@ class BookingsController extends AppController
     {
         $this->request->allowMethod(['post', 'delete']);
         $booking = $this->Bookings->get($id);
+        $this->Authorization->authorize($booking);
+
         if ($this->Bookings->delete($booking)) {
             $this->Flash->success(__('The booking has been deleted.'));
         } else {
