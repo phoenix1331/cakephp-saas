@@ -1,0 +1,36 @@
+@baseUrl = http://localhost:8000
+
+### Public booking flow
+
+# The public guest booking flow at /book/{slug}. There is no login here -
+# the tenant (Business) is resolved from the slug in
+# BookingsController::beforeFilter(), which 404s on an unknown slug.
+#
+# Replace `demo-salon`, service id `1` and staff id `1` below with real
+# values from your own seeded data - run `make seed` first, or create a
+# Business/Service/User via the admin dashboard.
+
+### List the services a Business offers
+GET {{baseUrl}}/book/demo-salon/
+
+### Show which staff can perform a given Service
+GET {{baseUrl}}/book/demo-salon/service/1
+
+### Show available slots for a Service/staff pairing on a given date
+# `date` defaults to today if omitted. Slots are staff hours minus
+# existing bookings minus the configured buffer (SlotFinder).
+GET {{baseUrl}}/book/demo-salon/service/1/staff/1?date=2026-09-21
+
+### Submit a guest booking
+# First GET the form above to obtain a real `_csrfToken` value and its
+# matching `csrfToken` cookie (CakePHP's CsrfProtectionMiddleware requires
+# both to match) - the values below are illustrative only and will be
+# rejected as-is. `slot` must be one of the `H:i` times the GET response
+# lists as available; on success this creates the Customer (found or
+# created by email), creates the Booking, sends the confirmation email
+# with an .ics attachment, and queues the reminder job.
+POST {{baseUrl}}/book/demo-salon/service/1/staff/1?date=2026-09-21
+Content-Type: application/x-www-form-urlencoded
+Cookie: csrfToken=REPLACE_WITH_COOKIE_VALUE
+
+_csrfToken=REPLACE_WITH_FORM_TOKEN&name=Jane+Doe&email=jane%40example.com&phone=07700900000&slot=09%3A00
