@@ -25,6 +25,20 @@ class AppController extends BaseAppController
     private const TENANT_SCOPED_TABLES = ['Users', 'Services', 'Customers', 'Bookings'];
 
     /**
+     * Actions reachable once a Business has lost dashboard access
+     * (Business::hasAccess() is false) - everything an owner needs to see
+     * why they're gated and pay their way out, plus logout. Keyed by
+     * controller name so BookingsController::view() (say) isn't
+     * accidentally exempted just because BusinessesController::view() is.
+     *
+     * @var array<string, array<string>>
+     */
+    private const TRIAL_GATE_EXEMPT_ACTIONS = [
+        'Businesses' => ['index', 'view', 'checkout', 'checkoutSuccess', 'billingPortal'],
+        'Users' => ['logout'],
+    ];
+
+    /**
      * Initialization hook method.
      *
      * @return void
@@ -39,8 +53,11 @@ class AppController extends BaseAppController
 
     /**
      * Sets the current tenant on every tenant-scoped table, using the
-     * logged-in identity's business_id. Runs once the identity is resolved,
-     * so login and signup (which have no identity yet) are unaffected.
+     * logged-in identity's business_id, then gates the rest of the
+     * dashboard behind Business::hasAccess() (the 14-day trial, or an
+     * active/trialing Stripe subscription) - everything except the
+     * exemptions above redirects to the Business page instead, where the
+     * Subscribe/Manage Billing links already live.
      *
      * @param \Cake\Event\EventInterface $event The beforeFilter event.
      * @return void
@@ -60,5 +77,24 @@ class AppController extends BaseAppController
                 ->get('TenantScope')
                 ->setTenantId($businessId);
         }
+
+        $controllerName = $this->request->getParam('controller');
+        $exemptActions = self::TRIAL_GATE_EXEMPT_ACTIONS[$controllerName] ?? [];
+        if (in_array($this->request->getParam('action'), $exemptActions, true)) {
+            return;
+        }
+
+        $business = $this->fetchTable('Businesses')->get($businessId);
+        if ($business->hasAccess()) {
+            return;
+        }
+
+        // The gate fires before the action's own authorize() call, so it
+        // must satisfy AuthorizationMiddleware's "every request performs a
+        // check" requirement itself.
+        $this->Authorization->skipAuthorization();
+        $this->Flash->error(__('Your trial has ended. Please subscribe to continue.'));
+
+        $event->setResult($this->redirect(['controller' => 'Businesses', 'action' => 'view', $businessId]));
     }
 }

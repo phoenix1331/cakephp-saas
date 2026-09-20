@@ -43,4 +43,22 @@ class Business extends Entity
         'created' => true,
         'modified' => true,
     ];
+
+    /**
+     * A Business has access to the dashboard if its 14-day trial hasn't
+     * expired yet, or if it has an active/trialing Stripe subscription -
+     * the two are independent, since a Business can subscribe before its
+     * trial ends, and subscription_status stops being meaningful once it
+     * does (a card is only required after the trial, per the brief).
+     *
+     * @return bool
+     */
+    public function hasAccess(): bool
+    {
+        if (in_array($this->subscription_status, ['active', 'trialing'], true)) {
+            return true;
+        }
+
+        return $this->trial_ends_at !== null && $this->trial_ends_at->isFuture();
+    }
 }

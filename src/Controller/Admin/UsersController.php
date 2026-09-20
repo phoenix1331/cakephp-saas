@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use Cake\Http\Response;
+use Cake\I18n\DateTime;
 use Cake\Utility\Text;
 
 /**
@@ -37,6 +38,8 @@ class UsersController extends AppController
                 'name' => $data['business_name'] ?? null,
                 'slug' => Text::slug(mb_strtolower((string)($data['business_name'] ?? '')), '-'),
                 'timezone' => $data['timezone'] ?? 'Europe/London',
+                // 14-day trial, no card required - see Business::hasAccess().
+                'trial_ends_at' => DateTime::now()->addDays(14),
             ]);
             $saved = $businesses->getConnection()->transactional(
                 function () use ($businesses, $business, $data, &$user): bool {
