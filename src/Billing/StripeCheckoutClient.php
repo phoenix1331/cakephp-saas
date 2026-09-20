@@ -86,4 +86,18 @@ class StripeCheckoutClient implements CheckoutClientInterface
 
         return $session->url;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSubscriptionPriceId(string $subscriptionId): ?string
+    {
+        try {
+            $subscription = $this->stripe->subscriptions->retrieve($subscriptionId);
+        } catch (ApiErrorException $exception) {
+            throw new RuntimeException($exception->getMessage(), previous: $exception);
+        }
+
+        return $subscription->items->data[0]->price->id ?? null;
+    }
 }

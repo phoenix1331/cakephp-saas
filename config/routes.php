@@ -51,11 +51,13 @@ return function (RouteBuilder $routes): void {
 
     $routes->scope('/', function (RouteBuilder $builder): void {
         /*
-         * Here, we are connecting '/' (base path) to a controller called 'Pages',
-         * its action called 'display', and we pass a param to select the view file
-         * to use (in this case, templates/Pages/home.php)...
+         * The root of the app is the dashboard, not the CakePHP scaffold's
+         * default welcome page. Admin\BusinessesController requires a
+         * logged-in identity (Admin\AppController::initialize()), so an
+         * unauthenticated visitor is sent on to the login form and a
+         * logged-in owner/staff member lands straight on their Business.
          */
-        $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+        $builder->connect('/', ['prefix' => 'Admin', 'controller' => 'Businesses', 'action' => 'index']);
 
         /*
          * ...and connect the rest of 'Pages' controller's URLs.
@@ -92,4 +94,9 @@ return function (RouteBuilder $routes): void {
     $routes->prefix('Admin', function (RouteBuilder $builder): void {
         $builder->fallbacks();
     });
+
+    // Stripe calls this directly - no login, no CSRF token (see the
+    // CsrfProtectionMiddleware exemption in Application::middleware()).
+    // Stripe's own signature check authenticates the request instead.
+    $routes->connect('/webhooks/stripe', ['controller' => 'StripeWebhooks', 'action' => 'handle']);
 };

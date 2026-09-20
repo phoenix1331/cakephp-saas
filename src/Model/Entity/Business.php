@@ -14,9 +14,12 @@ use Cake\ORM\Entity;
  * @property string $timezone
  * @property string|null $stripe_customer_id
  * @property string|null $subscription_status
+ * @property int|null $plan_id
  * @property \Cake\I18n\DateTime|null $trial_ends_at
  * @property \Cake\I18n\DateTime $created
  * @property \Cake\I18n\DateTime $modified
+ *
+ * @property \App\Model\Entity\Plan|null $plan
  */
 class Business extends Entity
 {
@@ -35,6 +38,7 @@ class Business extends Entity
         'timezone' => true,
         'stripe_customer_id' => true,
         'subscription_status' => true,
+        'plan_id' => true,
         'trial_ends_at' => true,
         'created' => true,
         'modified' => true,

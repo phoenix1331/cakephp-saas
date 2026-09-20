@@ -34,3 +34,68 @@ Content-Type: application/x-www-form-urlencoded
 Cookie: csrfToken=REPLACE_WITH_COOKIE_VALUE
 
 _csrfToken=REPLACE_WITH_FORM_TOKEN&name=Jane+Doe&email=jane%40example.com&phone=07700900000&slot=09%3A00
+
+### Stripe webhook
+
+# Stripe calls this directly (StripeWebhooksController::handle()) - no
+# login, no CSRF token, signature-verified instead. For real local testing,
+# use the Stripe CLI rather than this file: `stripe listen --forward-to
+# localhost:8000/webhooks/stripe` prints a `whsec_...` value to set as
+# STRIPE_WEBHOOK_SECRET, then `stripe trigger checkout.session.completed`
+# fires a genuinely-signed event at this endpoint. The Stripe-Signature
+# below is illustrative only - a client can't compute a valid HMAC without
+# the webhook secret, so this request will 400 as sent.
+
+### checkout.session.completed - activates the subscription and sets the Plan
+POST {{baseUrl}}/webhooks/stripe
+Content-Type: application/json
+Stripe-Signature: t=1700000000,v1=REPLACE_WITH_COMPUTED_SIGNATURE
+
+{
+  "id": "evt_example",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "object": "checkout.session",
+      "mode": "subscription",
+      "customer": "cus_example",
+      "subscription": "sub_example"
+    }
+  }
+}
+
+### customer.subscription.updated - syncs subscription_status (e.g. past_due, active)
+POST {{baseUrl}}/webhooks/stripe
+Content-Type: application/json
+Stripe-Signature: t=1700000000,v1=REPLACE_WITH_COMPUTED_SIGNATURE
+
+{
+  "id": "evt_example",
+  "type": "customer.subscription.updated",
+  "data": {
+    "object": {
+      "object": "subscription",
+      "id": "sub_example",
+      "customer": "cus_example",
+      "status": "past_due"
+    }
+  }
+}
+
+### customer.subscription.deleted - syncs subscription_status to canceled
+POST {{baseUrl}}/webhooks/stripe
+Content-Type: application/json
+Stripe-Signature: t=1700000000,v1=REPLACE_WITH_COMPUTED_SIGNATURE
+
+{
+  "id": "evt_example",
+  "type": "customer.subscription.deleted",
+  "data": {
+    "object": {
+      "object": "subscription",
+      "id": "sub_example",
+      "customer": "cus_example",
+      "status": "canceled"
+    }
+  }
+}

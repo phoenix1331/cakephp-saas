@@ -1,15 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Controller\Admin;
+namespace App\Test\TestCase\Billing;
 
 use App\Billing\CheckoutClientInterface;
 use RuntimeException;
 
 /**
- * A CheckoutClientInterface fake for BusinessesControllerTest - makes no
- * network calls, returns canned values, and records what it was called
- * with so tests can assert on it.
+ * A CheckoutClientInterface fake shared by BusinessesControllerTest and
+ * StripeWebhooksControllerTest - makes no network calls, returns canned
+ * values, and records what it was called with so tests can assert on it.
  */
 class FakeCheckoutClient implements CheckoutClientInterface
 {
@@ -21,9 +21,16 @@ class FakeCheckoutClient implements CheckoutClientInterface
 
     public ?string $lastPortalCustomerId = null;
 
+    public ?string $lastSubscriptionId = null;
+
     public bool $shouldFailSession = false;
 
     public bool $shouldFailPortalSession = false;
+
+    /**
+     * @var array<string, string>
+     */
+    public array $subscriptionPriceIds = [];
 
     public function createCustomer(string $name, int $businessId): string
     {
@@ -57,5 +64,12 @@ class FakeCheckoutClient implements CheckoutClientInterface
         }
 
         return 'https://billing.stripe.com/p/session/bps_fake_123';
+    }
+
+    public function getSubscriptionPriceId(string $subscriptionId): ?string
+    {
+        $this->lastSubscriptionId = $subscriptionId;
+
+        return $this->subscriptionPriceIds[$subscriptionId] ?? null;
     }
 }

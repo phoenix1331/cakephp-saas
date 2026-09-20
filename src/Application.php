@@ -105,9 +105,15 @@ class Application extends BaseApplication implements
 
             // Cross Site Request Forgery (CSRF) Protection Middleware
             // https://book.cakephp.org/5/en/security/csrf.html#cross-site-request-forgery-csrf-middleware
-            ->add(new CsrfProtectionMiddleware([
+            //
+            // The Stripe webhook is exempted: Stripe's own signature check
+            // (StripeWebhookController::handle()) is what authenticates that
+            // request, and Stripe has no CakePHP CSRF token to send.
+            ->add((new CsrfProtectionMiddleware([
                 'httponly' => true,
-            ]))
+            ]))->skipCheckCallback(function ($request) {
+                return $request->getUri()->getPath() === '/webhooks/stripe';
+            }))
 
             // Session-based authentication for the Admin (owner/staff) dashboard.
             // Public booking controllers never authenticate - see AppController.

@@ -38,4 +38,16 @@ interface CheckoutClientInterface
      * @return string The Billing Portal session's hosted page URL.
      */
     public function createBillingPortalSessionUrl(string $customerId, string $returnUrl): string;
+
+    /**
+     * Looks up the Stripe Price id a Subscription is billed against. A
+     * Checkout Session's subscription field is an unexpanded id on the
+     * webhook payload, so the price has to be fetched separately - used
+     * by StripeWebhooksController to resolve which local Plan a completed
+     * checkout corresponds to.
+     *
+     * @param string $subscriptionId Stripe Subscription id.
+     * @return string|null The subscription's Price id, or null if it has no items.
+     */
+    public function getSubscriptionPriceId(string $subscriptionId): ?string;
 }
