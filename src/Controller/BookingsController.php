@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Booking\DelayedJobDispatcher;
 use App\Booking\SlotFinder;
+use App\Job\SendBookingReminderJob;
+use App\Model\Entity\Booking;
 use App\Model\Entity\Business;
 use App\Model\Entity\Service;
 use Cake\Datasource\Exception\RecordNotFoundException;
@@ -167,6 +170,7 @@ class BookingsController extends AppController
                     $booking->set('service', $service);
                     $booking->set('customer', $customer);
                     $this->getMailer('Booking')->send('confirmation', [$booking]);
+                    $this->queueReminder($booking);
 
                     $this->Flash->success(__('Your booking is confirmed.'));
 
@@ -244,5 +248,25 @@ class BookingsController extends AppController
         });
 
         return [$saved, $customer, $booking];
+    }
+
+    /**
+     * Dispatches a SendBookingReminderJob delayed to arrive 24 hours before
+     * the Booking's start_time (or immediately, if the booking is already
+     * within that window) - the Phase 2 replacement for
+     * SendBookingRemindersCommand's cron polling. Dispatched once, at
+     * confirmation time, rather than discovered by a periodic scan.
+     *
+     * @param \App\Model\Entity\Booking $booking The just-created Booking.
+     * @return void
+     */
+    private function queueReminder(Booking $booking): void
+    {
+        $reminderAt = $booking->start_time->subHours(24);
+        $delaySeconds = max(0, $reminderAt->getTimestamp() - DateTime::now()->getTimestamp());
+
+        DelayedJobDispatcher::push(SendBookingReminderJob::class, [
+            'booking_id' => $booking->id,
+        ], $delaySeconds);
     }
 }

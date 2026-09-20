@@ -262,6 +262,25 @@ return [
     ],
 
     /*
+     * Queue configuration (cakephp/queue, Phase 4 of the reminder design -
+     * dispatches a reminder job at booking-confirmation time for the exact
+     * send time, replacing the cron-polling SendBookingRemindersCommand).
+     *
+     * Redis transport - the app's docker-compose.yml already provisions a
+     * redis service, and enqueue/redis supports true delayed delivery via
+     * a Redis sorted set, which a plain cron/database queue can't offer
+     * without its own polling loop.
+     */
+    'Queue' => [
+        'default' => [
+            'url' => env('QUEUE_URL', 'redis://redis:6379'),
+            'queue' => 'default',
+            'logger' => 'queue',
+            'receiveTimeout' => 10000,
+        ],
+    ],
+
+    /*
      * Connection information used by the ORM to connect
      * to your application's datastores.
      *
@@ -369,6 +388,14 @@ return [
             'file' => 'queries',
             'url' => env('LOG_QUERIES_URL', null),
             'scopes' => ['cake.database.queries'],
+        ],
+        'queue' => [
+            'className' => FileLog::class,
+            'path' => LOGS,
+            'file' => 'queue',
+            'url' => env('LOG_QUEUE_URL', null),
+            'scopes' => null,
+            'levels' => [],
         ],
     ],
 
