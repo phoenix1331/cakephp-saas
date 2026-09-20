@@ -48,4 +48,17 @@ class BusinessPolicy
     {
         return $this->canEdit($identity, $business);
     }
+
+    /**
+     * Only the owner may start or manage a subscription - the same rule as
+     * editing business/billing details.
+     *
+     * @param \Authorization\IdentityInterface $identity Identity.
+     * @param \App\Model\Entity\Business $business Business.
+     * @return bool
+     */
+    public function canCheckout(IdentityInterface $identity, Business $business): bool
+    {
+        return $this->canEdit($identity, $business);
+    }
 }

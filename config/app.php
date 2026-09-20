@@ -281,6 +281,16 @@ return [
     ],
 
     /*
+     * Stripe API credentials. Test-mode keys only in every environment
+     * short of production - see config/app_local.php (gitignored) for the
+     * actual values.
+     */
+    'Stripe' => [
+        'secretKey' => env('STRIPE_SECRET_KEY', null),
+        'webhookSecret' => env('STRIPE_WEBHOOK_SECRET', null),
+    ],
+
+    /*
      * Connection information used by the ORM to connect
      * to your application's datastores.
      *

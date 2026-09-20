@@ -2,6 +2,7 @@
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\Business $business
+ * @var iterable<\App\Model\Entity\Plan> $plans
  */
 ?>
 <div class="row">
@@ -56,6 +57,21 @@
                     <td><?= h($business->modified) ?></td>
                 </tr>
             </table>
+            <?php if (!empty($plans)) : ?>
+            <div class="related">
+                <h4><?= __('Subscribe') ?></h4>
+                <ul>
+                    <?php foreach ($plans as $planId => $planName) : ?>
+                    <li>
+                        <?= $this->Html->link(
+                            __('Subscribe to {0}', $planName),
+                            ['action' => 'checkout', $business->id, $planId],
+                        ) ?>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
             <div class="related">
                 <h4><?= __('Related Users') ?></h4>
                 <?php if (!empty($business->users)) : ?>

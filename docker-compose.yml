@@ -10,6 +10,8 @@ services:
       - DATABASE_URL=mysql://root:root@mysql:3306/cakephp_saas
       - REDIS_URL=redis://redis:6379
       - COMPOSER_HOME=/tmp/composer
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy
