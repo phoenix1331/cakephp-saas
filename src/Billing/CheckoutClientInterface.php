@@ -31,4 +31,11 @@ interface CheckoutClientInterface
         string $successUrl,
         string $cancelUrl,
     ): string;
+
+    /**
+     * @param string $customerId Stripe Customer id.
+     * @param string $returnUrl Redirect URL once the customer leaves the portal.
+     * @return string The Billing Portal session's hosted page URL.
+     */
+    public function createBillingPortalSessionUrl(string $customerId, string $returnUrl): string;
 }

@@ -61,4 +61,17 @@ class BusinessPolicy
     {
         return $this->canEdit($identity, $business);
     }
+
+    /**
+     * Only the owner may open the Stripe Customer Portal - the same rule
+     * as starting checkout or editing business/billing details.
+     *
+     * @param \Authorization\IdentityInterface $identity Identity.
+     * @param \App\Model\Entity\Business $business Business.
+     * @return bool
+     */
+    public function canBillingPortal(IdentityInterface $identity, Business $business): bool
+    {
+        return $this->canEdit($identity, $business);
+    }
 }

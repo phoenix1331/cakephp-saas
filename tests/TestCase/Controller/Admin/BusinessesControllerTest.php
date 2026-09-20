@@ -121,4 +121,54 @@ class BusinessesControllerTest extends TestCase
 
         $this->assertResponseCode(403);
     }
+
+    public function testBillingPortalRedirectsToTheHostedPageForAnExistingCustomer(): void
+    {
+        $businesses = TableRegistry::getTableLocator()->get('Businesses');
+        $business = $businesses->get(1);
+        $businesses->patchEntity($business, ['stripe_customer_id' => 'cus_already_exists']);
+        $businesses->saveOrFail($business, ['checkRules' => false]);
+
+        $this->loginAsUserId(1);
+
+        $this->get('/admin/businesses/billing-portal/1');
+
+        $this->assertRedirect('https://billing.stripe.com/p/session/bps_fake_123');
+        $this->assertSame('cus_already_exists', $this->checkoutClient->lastPortalCustomerId);
+    }
+
+    public function testBillingPortalReturns404ForABusinessWithNoStripeCustomerYet(): void
+    {
+        $this->loginAsUserId(1);
+
+        $this->get('/admin/businesses/billing-portal/1');
+
+        $this->assertResponseCode(404);
+    }
+
+    public function testBillingPortalFlashesAnErrorAndRedirectsBackWhenStripeFails(): void
+    {
+        $businesses = TableRegistry::getTableLocator()->get('Businesses');
+        $business = $businesses->get(1);
+        $businesses->patchEntity($business, ['stripe_customer_id' => 'cus_already_exists']);
+        $businesses->saveOrFail($business, ['checkRules' => false]);
+
+        $this->checkoutClient->shouldFailPortalSession = true;
+        $this->loginAsUserId(1);
+
+        $this->get('/admin/businesses/billing-portal/1');
+
+        $this->assertRedirect(['action' => 'view', 1]);
+        $this->assertFlashMessage('Could not open the billing portal: stripe is down');
+    }
+
+    public function testStaffCannotOpenTheBillingPortal(): void
+    {
+        // User 3 is staff, not owner, at business 1.
+        $this->loginAsUserId(3);
+
+        $this->get('/admin/businesses/billing-portal/1');
+
+        $this->assertResponseCode(403);
+    }
 }

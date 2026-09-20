@@ -10,6 +10,9 @@
         <div class="side-nav">
             <h4 class="heading"><?= __('Actions') ?></h4>
             <?= $this->Html->link(__('Edit Business'), ['action' => 'edit', $business->id], ['class' => 'side-nav-item']) ?>
+            <?php if (!empty($business->stripe_customer_id)) : ?>
+            <?= $this->Html->link(__('Manage Billing'), ['action' => 'billingPortal', $business->id], ['class' => 'side-nav-item']) ?>
+            <?php endif; ?>
         </div>
     </aside>
     <div class="column column-80">

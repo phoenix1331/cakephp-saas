@@ -145,4 +145,41 @@ class BusinessesController extends AppController
 
         $this->set(compact('business'));
     }
+
+    /**
+     * BillingPortal method
+     *
+     * Redirects the owner to Stripe's hosted Customer Portal for
+     * self-service plan changes and cancellation - Stripe owns that UI
+     * entirely, so there is nothing to build here beyond starting the
+     * session. Requires an existing Stripe Customer, so a Business that
+     * has never been through checkout() has nothing to manage yet.
+     *
+     * @param string|null $id Business id.
+     * @return \Cake\Http\Response
+     * @throws \Cake\Datasource\Exception\RecordNotFoundException When the Business does not exist.
+     * @throws \Cake\Http\Exception\NotFoundException When the Business has no Stripe Customer yet.
+     */
+    public function billingPortal(?string $id = null): Response
+    {
+        $business = $this->Businesses->get($id, contain: []);
+        $this->Authorization->authorize($business);
+
+        if (empty($business->stripe_customer_id)) {
+            throw new NotFoundException('This business has no active subscription to manage.');
+        }
+
+        try {
+            $sessionUrl = StripeClientFactory::create()->createBillingPortalSessionUrl(
+                $business->stripe_customer_id,
+                Router::url(['action' => 'view', $business->id], true),
+            );
+        } catch (RuntimeException $exception) {
+            $this->Flash->error(__('Could not open the billing portal: {0}', $exception->getMessage()));
+
+            return $this->redirect(['action' => 'view', $business->id]);
+        }
+
+        return $this->redirect($sessionUrl);
+    }
 }

@@ -19,7 +19,11 @@ class FakeCheckoutClient implements CheckoutClientInterface
 
     public ?string $lastPriceId = null;
 
+    public ?string $lastPortalCustomerId = null;
+
     public bool $shouldFailSession = false;
+
+    public bool $shouldFailPortalSession = false;
 
     public function createCustomer(string $name, int $businessId): string
     {
@@ -42,5 +46,16 @@ class FakeCheckoutClient implements CheckoutClientInterface
         }
 
         return 'https://checkout.stripe.com/c/pay/cs_fake_123';
+    }
+
+    public function createBillingPortalSessionUrl(string $customerId, string $returnUrl): string
+    {
+        $this->lastPortalCustomerId = $customerId;
+
+        if ($this->shouldFailPortalSession) {
+            throw new RuntimeException('stripe is down');
+        }
+
+        return 'https://billing.stripe.com/p/session/bps_fake_123';
     }
 }

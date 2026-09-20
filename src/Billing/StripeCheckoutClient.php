@@ -69,4 +69,21 @@ class StripeCheckoutClient implements CheckoutClientInterface
 
         return $session->url;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function createBillingPortalSessionUrl(string $customerId, string $returnUrl): string
+    {
+        try {
+            $session = $this->stripe->billingPortal->sessions->create([
+                'customer' => $customerId,
+                'return_url' => $returnUrl,
+            ]);
+        } catch (ApiErrorException $exception) {
+            throw new RuntimeException($exception->getMessage(), previous: $exception);
+        }
+
+        return $session->url;
+    }
 }
