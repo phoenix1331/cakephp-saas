@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use App\Model\Entity\Plan;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
 
@@ -80,5 +81,21 @@ class PlansTable extends Table
             ->greaterThanOrEqual('price', 0);
 
         return $validator;
+    }
+
+    /**
+     * The cheapest Plan - used as the staff limit during a Business's trial,
+     * before it has chosen a Plan (Business.plan_id is null). Lets a trial
+     * roughly match the entry tier's limits rather than being unlimited or
+     * a hardcoded number unrelated to actual pricing.
+     *
+     * Not a custom finder (findCheapest(SelectQuery $query): SelectQuery) -
+     * this returns a single Entity directly, a different shape entirely.
+     *
+     * @return \App\Model\Entity\Plan|null
+     */
+    public function getCheapest(): ?Plan
+    {
+        return $this->find()->orderBy(['price' => 'ASC'])->first();
     }
 }

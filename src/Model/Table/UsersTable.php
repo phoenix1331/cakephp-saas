@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use Cake\Datasource\EntityInterface;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
+use Cake\ORM\TableRegistry;
 use Cake\Validation\Validator;
 
 /**
@@ -107,7 +109,44 @@ class UsersTable extends Table
     {
         $rules->add($rules->isUnique(['email']), ['errorField' => 'email']);
         $rules->add($rules->existsIn(['business_id'], 'Businesses'), ['errorField' => 'business_id']);
+        $rules->addCreate([$this, 'isWithinStaffLimit'], 'isWithinStaffLimit', [
+            'errorField' => 'business_id',
+            'message' => __('This business has reached its staff limit for its current plan. Upgrade to add more.'),
+        ]);
 
         return $rules;
+    }
+
+    /**
+     * Blocks creating a new User once a Business is at its Plan's staff
+     * limit - "Solo: 1 staff member; Team: up to 5" per the brief. Counts
+     * every User on the Business (owner included), since a Solo business's
+     * one allowed User is the owner themself acting as staff, not the
+     * owner plus one separate staff member.
+     *
+     * A Business with no Plan chosen yet (still on trial) is capped at the
+     * cheapest Plan's limit instead of being unlimited - see
+     * PlansTable::getCheapest().
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The User being created.
+     * @param array<string, mixed> $options Rule options (unused).
+     * @return bool
+     */
+    public function isWithinStaffLimit(EntityInterface $entity, array $options = []): bool
+    {
+        /** @var \App\Model\Entity\User $entity */
+        $business = $this->Businesses->get($entity->business_id, contain: ['Plans']);
+
+        $plan = $business->plan ?? TableRegistry::getTableLocator()->get('Plans')->getCheapest();
+        if ($plan === null) {
+            // No Plan exists at all yet - nothing to enforce against.
+            return true;
+        }
+
+        $currentCount = $this->find('unscoped')
+            ->where(['business_id' => $business->id])
+            ->count();
+
+        return $currentCount < $plan->staff_limit;
     }
 }
