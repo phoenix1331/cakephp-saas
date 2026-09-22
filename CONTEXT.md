@@ -149,5 +149,3 @@ Two separate long-running/scheduled processes are needed beyond the web containe
 | Reminder command (fallback path) | `make send-reminders` (`bin/cake send_booking_reminders`) | Every 10-15 minutes via host crontab: `*/10 * * * * cd /path/to/cakephp-saas && make send-reminders >> logs/cron.log 2>&1` |
 
 Both are safe to run at the same time - see the idempotency note above.
-
-Planned: Stripe (`stripe/stripe-php`, Phase 5).
