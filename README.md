@@ -1,5 +1,7 @@
 # cakephp-saas
 
+<img width="2850" height="1618" alt="Screenshot 2026-09-22 192517" src="https://github.com/user-attachments/assets/6bb3e860-5c9c-4ab6-84f1-29621ce257db" />
+
 A booking and scheduling SaaS for solo service businesses (hairdressers, tutors, therapists), built in CakePHP 5.
 
 ## What this demonstrates
