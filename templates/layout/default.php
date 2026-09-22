@@ -1,55 +1,62 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
- * @link          https://cakephp.org CakePHP(tm) Project
- * @since         0.10.0
- * @license       https://opensource.org/licenses/mit-license.php MIT License
  * @var \App\View\AppView $this
  */
 
-$cakeDescription = 'CakePHP: the rapid development php framework';
+$identity = $this->request->getAttribute('identity');
+$navLinks = [
+    'Overview' => ['controller' => 'Businesses', 'action' => 'view', $identity['business_id'] ?? null],
+    'Bookings' => ['controller' => 'Bookings', 'action' => 'index'],
+    'Services' => ['controller' => 'Services', 'action' => 'index'],
+    'Staff' => ['controller' => 'Users', 'action' => 'index'],
+];
+$currentController = $this->request->getParam('controller');
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <?= $this->Html->charset() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>
-        <?= $cakeDescription ?>:
-        <?= $this->fetch('title') ?>
-    </title>
+    <title><?= __('Dashboard') ?><?= $this->fetch('title') ? ' - ' . $this->fetch('title') : '' ?></title>
     <?= $this->Html->meta('icon') ?>
 
-    <?= $this->Html->css(['normalize.min', 'milligram.min', 'fonts', 'cake']) ?>
+    <?= $this->Html->css('app') ?>
 
     <?= $this->fetch('meta') ?>
     <?= $this->fetch('css') ?>
     <?= $this->fetch('script') ?>
 </head>
-<body>
-    <nav class="top-nav">
-        <div class="top-nav-title">
-            <a href="<?= $this->Url->build('/') ?>"><span>Cake</span>PHP</a>
-        </div>
-        <div class="top-nav-links">
-            <a target="_blank" rel="noopener" href="https://book.cakephp.org/5/">Documentation</a>
-            <a target="_blank" rel="noopener" href="https://api.cakephp.org/">API</a>
+<body class="min-h-screen bg-gray-50 text-gray-900 antialiased">
+    <?php if ($identity !== null) : ?>
+    <nav class="border-b border-gray-200 bg-white">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-8">
+                <a href="<?= $this->Url->build(['controller' => 'Businesses', 'action' => 'view', $identity['business_id']]) ?>" class="text-sm font-semibold text-gray-900">
+                    <?= __('Dashboard') ?>
+                </a>
+                <div class="hidden gap-1 sm:flex">
+                    <?php foreach ($navLinks as $label => $url) : ?>
+                    <a
+                        href="<?= $this->Url->build($url) ?>"
+                        class="rounded-md px-3 py-1.5 text-sm font-medium <?= $currentController === $url['controller'] ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' ?>"
+                    ><?= __($label) ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="hidden text-sm text-gray-500 sm:inline"><?= h($identity['email']) ?></span>
+                <?= $this->Form->postLink(
+                    __('Log out'),
+                    ['controller' => 'Users', 'action' => 'logout'],
+                    ['class' => 'rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100']
+                ) ?>
+            </div>
         </div>
     </nav>
-    <main class="main">
-        <div class="container">
-            <?= $this->Flash->render() ?>
-            <?= $this->fetch('content') ?>
-        </div>
+    <?php endif; ?>
+    <main class="mx-auto max-w-6xl px-4 py-8">
+        <?= $this->Flash->render() ?>
+        <?= $this->fetch('content') ?>
     </main>
-    <footer>
-    </footer>
 </body>
 </html>

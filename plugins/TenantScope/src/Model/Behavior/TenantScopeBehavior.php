@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Model\Behavior;
+namespace TenantScope\Model\Behavior;
 
 use ArrayObject;
 use Cake\Datasource\EntityInterface;

@@ -8,4 +8,6 @@
 
     <file>src/</file>
     <file>tests/</file>
+    <file>plugins/TenantScope/src/</file>
+    <file>plugins/TenantScope/tests/</file>
 </ruleset>

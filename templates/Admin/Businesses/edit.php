@@ -5,30 +5,35 @@
  * @var string[]|\Cake\Collection\CollectionInterface $plans
  */
 ?>
-<div class="row">
-    <aside class="column">
-        <div class="side-nav">
-            <h4 class="heading"><?= __('Actions') ?></h4>
-            <?= $this->Html->link(__('View Business'), ['action' => 'view', $business->id], ['class' => 'side-nav-item']) ?>
+<div class="mx-auto max-w-lg">
+    <a href="<?= $this->Url->build(['action' => 'view', $business->id]) ?>" class="text-sm text-gray-500 hover:text-gray-700">
+        &larr; <?= __('Back to overview') ?>
+    </a>
+
+    <h1 class="mt-2 text-2xl font-semibold text-gray-900"><?= __('Edit business') ?></h1>
+
+    <?= $this->Form->create($business) ?>
+    <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6">
+        <?php
+            echo $this->Form->control('name', ['label' => __('Name')]);
+            echo $this->Form->control('slug', ['label' => __('Slug')]);
+            echo $this->Form->control('timezone', ['label' => __('Timezone')]);
+            echo $this->Form->control('plan_id', ['label' => __('Plan'), 'options' => $plans, 'empty' => true]);
+        ?>
+
+        <div class="mb-4 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 text-sm">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= __('Subscription status') ?></p>
+                <p class="mt-1 text-gray-900"><?= h($business->subscription_status ?? __('None')) ?></p>
+            </div>
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= __('Stripe customer') ?></p>
+                <p class="mt-1 text-gray-900"><?= h($business->stripe_customer_id ?? __('Not set')) ?></p>
+            </div>
         </div>
-    </aside>
-    <div class="column column-80">
-        <div class="businesses form content">
-            <?= $this->Form->create($business) ?>
-            <fieldset>
-                <legend><?= __('Edit Business') ?></legend>
-                <?php
-                    echo $this->Form->control('name');
-                    echo $this->Form->control('slug');
-                    echo $this->Form->control('timezone');
-                    echo $this->Form->control('stripe_customer_id');
-                    echo $this->Form->control('subscription_status');
-                    echo $this->Form->control('trial_ends_at', ['empty' => true]);
-                    echo $this->Form->control('plan_id', ['options' => $plans, 'empty' => true]);
-                ?>
-            </fieldset>
-            <?= $this->Form->button(__('Submit')) ?>
-            <?= $this->Form->end() ?>
-        </div>
+        <p class="mb-4 text-xs text-gray-400"><?= __('Subscription status and billing are managed through Stripe, not edited here.') ?></p>
+
+        <?= $this->Form->button(__('Save changes'), ['class' => 'rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700']) ?>
     </div>
+    <?= $this->Form->end() ?>
 </div>

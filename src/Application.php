@@ -67,6 +67,8 @@ class Application extends BaseApplication implements
             'Table',
             (new TableLocator())->allowFallbackClass(false),
         );
+
+        $this->addPlugin('TenantScope');
     }
 
     /**

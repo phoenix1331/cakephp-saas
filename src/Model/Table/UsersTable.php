@@ -45,7 +45,7 @@ class UsersTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
-        $this->addBehavior('TenantScope');
+        $this->addBehavior('TenantScope.TenantScope');
 
         $this->belongsTo('Businesses', [
             'foreignKey' => 'business_id',

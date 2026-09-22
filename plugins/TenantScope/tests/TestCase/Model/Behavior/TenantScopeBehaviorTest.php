@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Model\Behavior;
+namespace TenantScope\Test\TestCase\Model\Behavior;
 
 use Cake\ORM\TableRegistry;
 use Cake\TestSuite\TestCase;
