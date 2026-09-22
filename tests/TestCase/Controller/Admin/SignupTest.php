@@ -67,6 +67,32 @@ class SignupTest extends TestCase
         $this->assertSessionHasKey('Auth.id');
     }
 
+    public function testSignupWithAnEmailAlreadyInUseFailsValidationInsteadOf500ing(): void
+    {
+        // Fixture user id 1 already uses this email under a different
+        // Business - signing up a second Business with the same email
+        // must fail cleanly, not hit the database's own unique index.
+        $users = TableRegistry::getTableLocator()->get('Users');
+        $users->behaviors()->get('TenantScope')->setTenantId(1);
+        $existing = $users->find('unscoped')->firstOrFail();
+
+        $this->enableCsrfToken();
+        $this->enableSecurityToken();
+        $this->post('/admin/users/signup', [
+            'business_name' => 'Epsilon Studio',
+            'timezone' => 'Europe/London',
+            'email' => $existing->email,
+            'password' => 'super-secret-123',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('already in use');
+
+        $businesses = TableRegistry::getTableLocator()->get('Businesses');
+        $count = $businesses->find()->where(['slug' => 'epsilon-studio'])->count();
+        $this->assertSame(0, $count);
+    }
+
     public function testSignupWithMissingBusinessNameFailsValidation(): void
     {
         $this->enableCsrfToken();

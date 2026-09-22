@@ -79,8 +79,7 @@ class UsersTable extends Table
         $validator
             ->email('email')
             ->requirePresence('email', 'create')
-            ->notEmptyString('email')
-            ->add('email', 'unique', ['rule' => 'validateUnique', 'provider' => 'table']);
+            ->notEmptyString('email');
 
         $validator
             ->scalar('password')
@@ -107,7 +106,10 @@ class UsersTable extends Table
      */
     public function buildRules(RulesChecker $rules): RulesChecker
     {
-        $rules->add($rules->isUnique(['email']), ['errorField' => 'email']);
+        $rules->add([$this, 'isEmailUnique'], 'isEmailUnique', [
+            'errorField' => 'email',
+            'message' => __('This email address is already in use.'),
+        ]);
         $rules->add($rules->existsIn(['business_id'], 'Businesses'), ['errorField' => 'business_id']);
         $rules->addCreate([$this, 'isWithinStaffLimit'], 'isWithinStaffLimit', [
             'errorField' => 'business_id',
@@ -115,6 +117,36 @@ class UsersTable extends Table
         ]);
 
         return $rules;
+    }
+
+    /**
+     * `email` is unique across the whole table, not per tenant (a login
+     * lookup has to resolve to exactly one Business by email alone - see
+     * TenantScopeBehavior::findUnscoped()) - RulesChecker's built-in
+     * isUnique() calls Table::exists(), which goes through the normal,
+     * tenant-scoped find() and so can never see a duplicate email that
+     * belongs to a different Business. That let a genuine duplicate reach
+     * the database's own unique index, surfacing as a raw
+     * SQLSTATE[23000] integrity-constraint 500 instead of a validation
+     * error. This checks find('unscoped') explicitly instead.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The User being saved.
+     * @param array<string, mixed> $options Rule options (unused).
+     * @return bool
+     */
+    public function isEmailUnique(EntityInterface $entity, array $options = []): bool
+    {
+        /** @var \App\Model\Entity\User $entity */
+        if (!$entity->isDirty('email') || $entity->email === null) {
+            return true;
+        }
+
+        $query = $this->find('unscoped')->where(['email' => $entity->email]);
+        if (!$entity->isNew()) {
+            $query->andWhere(['id !=' => $entity->id]);
+        }
+
+        return $query->count() === 0;
     }
 
     /**

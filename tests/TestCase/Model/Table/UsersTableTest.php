@@ -103,6 +103,24 @@ class UsersTableTest extends TestCase
         $this->assertNotFalse($saved);
     }
 
+    public function testRejectsADuplicateEmailAcrossDifferentBusinesses(): void
+    {
+        // Fixture user id 1 (alpha-hair-studio, business 1) already uses
+        // this email - a second Business signing up a User with the same
+        // email must be rejected too, even though isEmailUnique() has to
+        // look past TenantScopeBehavior's own scoping to see it.
+        $users = TableRegistry::getTableLocator()->get('Users');
+        $users->behaviors()->get('TenantScope')->setTenantId(1);
+        $existing = $users->find('unscoped')->where(['business_id' => 1])->firstOrFail();
+
+        $user = $this->newUser(2, $existing->email);
+
+        $saved = $users->save($user);
+
+        $this->assertFalse($saved);
+        $this->assertArrayHasKey('email', $user->getErrors());
+    }
+
     public function testEditingAnExistingUserIsNeverBlockedByTheLimit(): void
     {
         // addCreate() only - the rule must not fire on update, or a
