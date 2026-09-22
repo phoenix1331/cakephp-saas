@@ -1,4 +1,4 @@
-.PHONY: up down build shell migrate seed test logs fresh lint lint-fix css css-watch send-reminders help
+.PHONY: up down build shell migrate test logs fresh lint lint-fix css css-watch send-reminders help
 
 up: ## start containers in the background
 	@docker compose up -d
@@ -14,9 +14,6 @@ shell: ## open a shell in the app container
 
 migrate: ## run pending database migrations
 	@docker compose exec app bin/cake migrations migrate
-
-seed: ## seed the database
-	@docker compose exec app bin/cake migrations seed
 
 test: ## run the test suite
 	@docker compose exec app vendor/bin/phpunit
@@ -39,10 +36,9 @@ css-watch: ## rebuild Tailwind CSS on file changes
 send-reminders: ## send booking reminders due in the next 24 hours (the cron entry runs this every 10-15 minutes)
 	@docker compose exec app bin/cake send_booking_reminders
 
-fresh: ## drop and rebuild the database, then migrate and seed
+fresh: ## drop and rebuild the database, then migrate
 	@docker compose exec app bin/cake migrations rollback --target=0 --force
 	@docker compose exec app bin/cake migrations migrate
-	@docker compose exec app bin/cake migrations seed
 
 help: ## list available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-10s\033[0m %s\n", $$1, $$2}'
