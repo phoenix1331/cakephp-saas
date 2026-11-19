@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "367107c036aca471b3f38708d2ee8d36",
+    "content-hash": "b55cf333d07450043ff5fd6be86366f2",
     "packages": [
         {
             "name": "brick/math",
@@ -2158,23 +2158,23 @@
         },
         {
             "name": "stripe/stripe-php",
-            "version": "v21.3.2",
+            "version": "v23.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/stripe/stripe-php.git",
-                "reference": "0d8b075e1a97d15c5324353a5277d0ea686ea525"
+                "reference": "f29b7a44597531c304360c3d42959aaf52e33618"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/0d8b075e1a97d15c5324353a5277d0ea686ea525",
-                "reference": "0d8b075e1a97d15c5324353a5277d0ea686ea525",
+                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/f29b7a44597531c304360c3d42959aaf52e33618",
+                "reference": "f29b7a44597531c304360c3d42959aaf52e33618",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
                 "ext-json": "*",
                 "ext-mbstring": "*",
-                "php": ">=7.2.0"
+                "php": ">=7.4.0"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "3.94.0",
@@ -2214,9 +2214,9 @@
             ],
             "support": {
                 "issues": "https://github.com/stripe/stripe-php/issues",
-                "source": "https://github.com/stripe/stripe-php/tree/v21.3.2"
+                "source": "https://github.com/stripe/stripe-php/tree/v23.0.0"
             },
-            "time": "2026-09-09T20:40:43+00:00"
+            "time": "2026-11-11T19:52:56+00:00"
         },
         {
             "name": "symfony/config",
